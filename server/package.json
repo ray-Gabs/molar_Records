@@ -1,0 +1,5 @@
+{
+  "dependencies": {
+    "file-server": "^2.2.1"
+  }
+}
