@@ -1,5 +1,8 @@
 import React, { useState, useEffect } from 'react';
-import { useNavigate } from "react-router-dom";
+  import { useNavigate } from "react-router-dom";
+
+import Divider from '@mui/material/Divider';
+
 import './ClientSidebar.css';
 
 function ClientSidebar() {
@@ -37,10 +40,12 @@ function ClientSidebar() {
           <div className="ClientTab" onClick={() => navigate("/")}>
             <span>Home</span>
           </div>
+          <div className="ClientTab" onClick={() => navigate("/Records")}>
+            <span>Records</span>
+          </div>
         </div>
-        
+        <Divider sx={{ borderColor: 'white', borderBottomWidth: 2, width: '100%', display: 'block' }} />
         <div className="ClientLogout" onClick={() => navigate("/Login")}>
-          <hr />
           <span>Logout</span>
         </div>
       </nav>

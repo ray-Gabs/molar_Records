@@ -1,6 +1,6 @@
 import React from 'react'
 
-function ClientProfile() {
+function UserRecords() {
   return (
     <div>
       
@@ -8,4 +8,4 @@ function ClientProfile() {
   )
 }
 
-export default ClientProfile
+export default UserRecords

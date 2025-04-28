@@ -11,3 +11,16 @@ const port = 1337;
 app.listen(port, () => {
     console.log(`API server running at http://localhost:${port}`);
 });
+
+
+
+const mongoose = require("mongoose");
+
+mongoose.connect('mongodb://localhost:27017/SIS', { 
+  })
+  .then(() => {
+    console.log('MongoDB connected to SIS database');
+  })
+  .catch((error) => {
+    console.error('Error connecting to MongoDB:', error);
+  });

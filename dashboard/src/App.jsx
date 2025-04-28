@@ -7,9 +7,9 @@ import LoginPage from "./pages/LoginPage";
 
 /*user import*/
 import ClientSidebar from "./pages/UserFiling/ClientSidebar"
-import EditUser from "./pages/UserFiling/EditUser"
+import UserProfile from "./pages/UserFiling/UserProfile"
 import UserDashboard from "./pages/UserFiling/UserDashboard"
-
+import UserRecords from "./pages/UserFiling/UserRecords"
 /*Admin import*/
 import AdminDashboard from "./pages/AdminPannel/AdminDashboard";
 
@@ -25,7 +25,8 @@ function App() {
         {/* User Panel */}
         <Route path="/login" element={<LoginPage />} />
         <Route path="/" element={<UserDashboard />} />
-        <Route path="/EditUser" element={<EditUser />} />
+        <Route path="/Profile" element={<UserProfile />} />
+        <Route path="/Records" element={<UserRecords />} />
 
         {/* Admin Panel */}
         <Route path="/AdminDashboard" element={<AdminDashboard />} />
