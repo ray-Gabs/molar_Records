@@ -1,56 +1,58 @@
-import React, { useState, useEffect } from 'react';
-  import { useNavigate } from "react-router-dom";
+import React, { useState } from 'react';
+import { useNavigate } from 'react-router-dom';
+import { Layout, Menu } from 'antd';
+import {
+  UserOutlined,
+  HomeOutlined,
+  FileTextOutlined,
+  LogoutOutlined,
+} from '@ant-design/icons';
 
-import Divider from '@mui/material/Divider';
+const { Sider } = Layout;
 
-import './ClientSidebar.css';
-
-function ClientSidebar() {
+function ClientDashboard() {
+  const [collapsed, setCollapsed] = useState(false);
   const navigate = useNavigate();
 
-  // Placeholder state for user data
-  const [profileImageUrl, setProfileImageUrl] = useState("");
+  const handleLogout = () => {
+    localStorage.removeItem("authToken"); // Remove token
+    navigate("/login"); // Redirect to login
+  };
 
-  useEffect(() => {
-    // Simulate fetching the profile image URL from DB or API
-    // Replace this with your real fetch logic
-    const fetchUserData = async () => {
-      const fakeUser = {
-        profileImageUrl: "https://i.pravatar.cc/150?img=32", // placeholder image
-      };
-      setProfileImageUrl(fakeUser.profileImageUrl);
-    };
-
-    fetchUserData();
-  }, []);
+  const items = [
+    {
+      key: '1',
+      icon: <HomeOutlined />,
+      label: 'Home',
+      onClick: () => navigate('/'),
+    },
+    {
+      key: '2',
+      icon: <UserOutlined />,
+      label: 'Profile',
+      onClick: () => navigate('/Profile'),
+    },
+    {
+      key: '3',
+      icon: <FileTextOutlined />,
+      label: 'Records',
+      onClick: () => navigate('/Records'),
+    },
+    {
+      key: '4',
+      icon: <LogoutOutlined />,
+      label: 'Logout',
+      onClick: handleLogout, // Logout on click
+    },
+  ];
 
   return (
-    <aside className="ClientSidebar">
-      <nav className="SidebarNav">
-        <div className="ClientContainer">
-          <div className="ClientProfile" onClick={() => navigate("/Profile")}>
-            <div className="ProfileImageWrapper">
-              {profileImageUrl ? (
-                <img src={profileImageUrl} alt="Profile" className="ProfileImage" />
-              ) : (
-                <div className="ProfileImagePlaceholder" />
-              )}
-            </div>
-          </div>
-          <div className="ClientTab" onClick={() => navigate("/")}>
-            <span>Home</span>
-          </div>
-          <div className="ClientTab" onClick={() => navigate("/Records")}>
-            <span>Records</span>
-          </div>
-        </div>
-        <Divider sx={{ borderColor: 'white', borderBottomWidth: 2, width: '100%', display: 'block' }} />
-        <div className="ClientLogout" onClick={() => navigate("/Login")}>
-          <span>Logout</span>
-        </div>
-      </nav>
-    </aside>
+    <Layout style={{ minHeight: '100vh' }}>
+      <Sider collapsible collapsed={collapsed} onCollapse={setCollapsed}>
+        <Menu theme="dark" items={items} />
+      </Sider>
+    </Layout>
   );
 }
 
-export default ClientSidebar;
+export default ClientDashboard;

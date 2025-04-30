@@ -1,26 +1,42 @@
-const fs = require("fs");
-const path = require("path");
+require("dotenv").config();
+require("express-async-errors");
+
 const express = require("express");
+const cors = require("cors");
+const errorHandler = require("./middleware/errorHandler.js");
+
+// Routes
+const userRoute = require("./routes/userRoute.js");
+const dentistNStaffRoute = require("./routes/dentistNStaffRoute.js");
+const loginNRegisterRoute = require("./routes/loginNRegisterRoute.js");
+const appointmentRoute = require("./routes/appointmentRoute.js");
+const recordRoute = require("./routes/recordRoute.js");
+
+// MongoDB connection
+const connectDB = require("./config/connection.js");
 
 const app = express();
+
+// Middleware
+app.use(cors());
 app.use(express.json());
 
+// Connect to MongoDB
+connectDB();
 
-// Start the API server
-const port = 1337;
-app.listen(port, () => {
-    console.log(`API server running at http://localhost:${port}`);
+// Routes
+app.use("/user", userRoute);
+app.use("/dentist", dentistNStaffRoute);
+app.use("/staff", dentistNStaffRoute);
+app.use("/appointment", appointmentRoute);
+app.use("/record", recordRoute);
+app.use("/auth", loginNRegisterRoute);
+
+// Global error handler
+app.use(errorHandler);
+
+// Start server
+const PORT = process.env.PORT || 1337;
+app.listen(PORT, () => {
+  console.log(`🚀 Server running on port ${PORT}`);
 });
-
-
-
-const mongoose = require("mongoose");
-
-mongoose.connect('mongodb://localhost:27017/SIS', { 
-  })
-  .then(() => {
-    console.log('MongoDB connected to SIS database');
-  })
-  .catch((error) => {
-    console.error('Error connecting to MongoDB:', error);
-  });

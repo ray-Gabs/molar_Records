@@ -1,10 +1,14 @@
 import React from 'react'
+import ClientSidebar from "./ClientSidebar";
 
 function UserRecords() {
   return (
-    <div>
-      
-    </div>
+    <div className='userRecordPage'>
+      <ClientSidebar />
+      <div className='userRecordContent'>
+
+      </div>
+  </div>
   )
 }
 
