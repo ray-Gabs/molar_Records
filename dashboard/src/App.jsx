@@ -23,7 +23,7 @@ function App() {
     if (token) {
       try {
         const decodedToken = JSON.parse(atob(token.split('.')[1]));
-        setUserRole(decodedToken.role); // Safely update userRole if token exists
+        setUserRole(decodedToken.role); 
         setIsAuthenticated(true); 
       } catch (error) {
         console.error("Error decoding token:", error);

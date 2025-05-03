@@ -44,12 +44,11 @@ function LoginPage({ setIsAuthenticated }) {
   
         // Update authentication state in App.jsx
         setIsAuthenticated(true);
-        // setUserRole(role); // Removed as it is not defined
   
         if (role === "patient") {
           navigate("/"); 
         } else if (role === "dentist") {
-          navigate("/AdminDashboard");
+          navigate("/");
         }
       } else {
         setError(response.data.message || "Invalid login");

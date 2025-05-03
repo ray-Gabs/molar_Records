@@ -7,7 +7,7 @@ const recordsSchema = new mongoose.Schema({
   dentistId: { type: String, required: true },
   diagnosis: { type: String, required: true },
   treatment: { type: String, required: true },
-  images: [{ type: String }], // Array of Base64 image strings
+  images: [{ type: String }], 
   fine: { type: mongoose.Types.Decimal128, default: 0.0 },
   fineStatus: {
     type: String,

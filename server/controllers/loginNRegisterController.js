@@ -43,24 +43,6 @@ exports.registerUser = async (req, res) => {
   }
 };
 
-// Get user by id
-exports.getUserById = async (req, res) => {
-  const { userId } = req.params;
-
-  try {
-    const user = await User.findOne({ userId });
-
-    if (!user) return res.status(404).json({ message: "User not found" });
-
-    // Return user details excluding the hashed password
-    const { password, ...userWithoutPassword } = user.toObject();
-
-    res.status(200).json(userWithoutPassword);
-  } catch (err) {
-    console.error("Get user by ID error:", err);
-    res.status(500).json({ message: "Error retrieving user", error: err.message });
-  }
-};
 
 // Login logic using JWT
 exports.loginUser = async (req, res) => {
@@ -137,5 +119,23 @@ exports.editUser = async (req, res) => {
   } catch (err) {
     console.error("Edit user error:", err);
     res.status(500).json({ message: "Error updating profile", error: err.message });
+  }
+};
+// Get user by id
+exports.getUserById = async (req, res) => {
+  const { userId } = req.params;
+
+  try {
+    const user = await User.findOne({ userId });
+
+    if (!user) return res.status(404).json({ message: "User not found" });
+
+    // Return user details excluding the hashed password
+    const { password, ...userWithoutPassword } = user.toObject();
+
+    res.status(200).json(userWithoutPassword);
+  } catch (err) {
+    console.error("Get user by ID error:", err);
+    res.status(500).json({ message: "Error retrieving user", error: err.message });
   }
 };

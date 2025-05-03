@@ -5,7 +5,7 @@ const appointmentSchema = new mongoose.Schema({
   patientId: { type: String, required: true },
   dentistId: { type: String, required: true },
   appointmentDate: { type: Date, required: true }, // Date part
-  appointmentTime: { type: String, required: true }, // Store time as string (e.g., '14:30')
+  appointmentTime: { type: String, required: true }, 
   status: {
     type: String,
     enum: ['pending', 'confirmed', 'cancelled', 'completed'],

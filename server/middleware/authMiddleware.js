@@ -9,7 +9,10 @@ const authenticateUser = async (req, res, next) => {
   }
 
   try {
+    // Decode the token using the secret key
     const decoded = jwt.verify(token, process.env.JWT_SECRET);
+
+    // Find the user by userId (or adjust this if your schema uses _id)
     const user = await User.findOne({ userId: decoded.userId });
 
     if (!user) {
@@ -19,8 +22,8 @@ const authenticateUser = async (req, res, next) => {
     req.user = user; // Attach user data to the request object
     next(); // Proceed to the next middleware or route handler
   } catch (err) {
-    console.error("Authentication error:", err);
-    return res.status(401).json({ message: "Invalid token." });
+    console.error("Authentication error:", err);  // More detailed logging
+    return res.status(401).json({ message: "Invalid or expired token." });
   }
 };
 
