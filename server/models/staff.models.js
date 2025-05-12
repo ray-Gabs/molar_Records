@@ -12,7 +12,7 @@ const staffSchema = new mongoose.Schema({
     required: true,
     match: [/^\d+$/, 'Contact number must contain only digits']
   },
-  profileImages: { type: [String] },
+  profileImage: { type: String },
 });
 
 module.exports = mongoose.model('Staff', staffSchema);

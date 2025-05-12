@@ -15,7 +15,7 @@
   justify-content: space-between;
 }
 .dashboard-content{
-  margin-top: 10px;
+  margin-top: -30px;
 
     display: flex;
     flex-direction: row;
@@ -28,7 +28,6 @@
     width: 110vh;
     padding: 20px;
     top: 0;
-    overflow-y: auto;
 }
 .DetailsandEtc {
   position: sticky;
@@ -64,4 +63,7 @@
     height: auto;
     display: block; 
     
+  }
+  .table {
+   top: -50px;
   }

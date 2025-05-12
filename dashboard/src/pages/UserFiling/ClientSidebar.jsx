@@ -14,7 +14,7 @@ const { Sider } = Layout;
 function ClientDashboard() {
   const [collapsed, setCollapsed] = useState(false);
   const navigate = useNavigate();
-  const role = sessionStorage.getItem('role');  // Get the user's role from session storage
+  const role = sessionStorage.getItem('role'); 
 
   const handleLogout = () => {
     sessionStorage.removeItem('authToken'); 
@@ -24,13 +24,14 @@ function ClientDashboard() {
     navigate('/login'); 
   };
 
-  // Menu items based on role
+
   const items = [
     {
       key: '1',
       icon: <HomeOutlined />,
       label: 'Home',
       onClick: () => navigate('/'),
+      hidden: role !== 'patient',
     },
     {
       key: '2',
@@ -41,21 +42,33 @@ function ClientDashboard() {
     {
       key: '3',
       icon: <TeamOutlined />,
-      label: 'Manage Staff',
-      onClick: () => navigate('/ManageStaff'),  // Add navigation to "Manage Staff" page
-      // Only show if the role is "dentist"
+      label: 'Manage Dentist',
+      onClick: () => navigate('/ManageDentist'), 
       hidden: role !== 'dentist',
     },
     {
       key: '4',
+      icon: <TeamOutlined />,
+      label: 'Manage Staff',
+      onClick: () => navigate('/ManageStaff'), 
+      hidden: role !== 'dentist',
+    },
+    {
+      key: '5',
       icon: <FileTextOutlined />,
-      label: 'Records',
-      onClick: () => navigate('/Records'),
-      // Only show if the role is "staff" or "dentist"
+      label: 'Appointments',
+      onClick: () => navigate('/ManageAppointment'),
       hidden: role !== 'staff' && role !== 'dentist',
     },
     {
       key: '5',
+      icon: <FileTextOutlined />,
+      label: 'Manage Records',
+      onClick: () => navigate('/ManageRecord'),
+      hidden: role !== 'staff' && role !== 'dentist',
+    },
+    {
+      key: '6',
       icon: <LogoutOutlined />,
       label: 'Logout',
       onClick: handleLogout,
@@ -67,7 +80,7 @@ function ClientDashboard() {
       <Sider collapsible collapsed={collapsed} onCollapse={setCollapsed}>
         <Menu theme="dark">
           {items
-            .filter(item => !item.hidden)  // Hide menu items based on role
+            .filter(item => !item.hidden) 
             .map(item => (
               <Menu.Item key={item.key} icon={item.icon} onClick={item.onClick}>
                 {item.label}

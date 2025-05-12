@@ -13,7 +13,7 @@ import {
 import { Visibility, VisibilityOff } from "@mui/icons-material";
 import "./LoginPage.css";
 
-function LoginPage({ setIsAuthenticated }) {
+function LoginPage({ setIsAuthenticated, setUserRole }) {
   const navigate = useNavigate();
   const [userForm, setUserForm] = useState({ emailOrUsername: "", password: "" });
   const [error, setError] = useState("");
@@ -35,22 +35,22 @@ function LoginPage({ setIsAuthenticated }) {
       console.log("Response from server:", response.data); // Log the full response
   
       if (response.data.message === "Login successful") {
-        const { authToken, role, userId, email } = response.data;
-  
-        sessionStorage.setItem("authToken", authToken);
-        sessionStorage.setItem("userId", userId);
-        sessionStorage.setItem("email", email);
-        sessionStorage.setItem("role", role);
-  
-        // Update authentication state in App.jsx
-        setIsAuthenticated(true);
-  
-        if (role === "patient") {
-          navigate("/"); 
-        } else if (role === "dentist") {
-          navigate("/");
-        }
-      } else {
+      const { authToken, role, userId, email } = response.data;
+
+      sessionStorage.setItem("authToken", authToken);
+      sessionStorage.setItem("userId", userId);
+      sessionStorage.setItem("email", email);
+      sessionStorage.setItem("role", role);
+
+      setUserRole(role); 
+      setIsAuthenticated(true);
+
+      if (role === "patient") {
+        navigate("/");
+      } else if (role === "dentist"|| role === "staff") {
+        navigate("/ManageAppointment");
+      }
+    } else {
         setError(response.data.message || "Invalid login");
       }
     } catch (err) {

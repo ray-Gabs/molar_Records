@@ -1,6 +1,6 @@
+/* eslint-disable no-unused-vars */
 import React, { useState, useEffect } from "react";
 import ClientSidebar from "./ClientSidebar";
-import DentalBanner from "../../assets/BgMolarRecord.png";
 import OrthoIn from "../../assets/OrthoisIn.png";
 import Typography from '@mui/material/Typography';
 import Stack from '@mui/material/Stack';
@@ -10,6 +10,13 @@ import { styled } from '@mui/material/styles';
 import { AdapterDayjs } from '@mui/x-date-pickers/AdapterDayjs';
 import { LocalizationProvider } from '@mui/x-date-pickers/LocalizationProvider';
 import { DateCalendar } from '@mui/x-date-pickers/DateCalendar';
+import { TimePicker } from '@mui/x-date-pickers/TimePicker';
+import Dialog from '@mui/material/Dialog';
+import DialogActions from '@mui/material/DialogActions';
+import DialogContent from '@mui/material/DialogContent';
+import DialogTitle from '@mui/material/DialogTitle';
+import TextField from '@mui/material/TextField';
+import MenuItem from '@mui/material/MenuItem';
 import Table from '@mui/material/Table';
 import TableBody from '@mui/material/TableBody';
 import TableCell, { tableCellClasses } from '@mui/material/TableCell';
@@ -18,16 +25,18 @@ import TableHead from '@mui/material/TableHead';
 import TableRow from '@mui/material/TableRow';
 import TablePagination from '@mui/material/TablePagination';
 import Paper from '@mui/material/Paper';
-import Box from '@mui/material/Box';
+import axios from "axios";
+import dayjs from "dayjs";
 import "./UserDashboard.css";
 
+// Styled MUI Table
 const StyledTableCell = styled(TableCell)(({ theme }) => ({
   [`&.${tableCellClasses.head}`]: {
     backgroundColor: theme.palette.common.black,
     color: theme.palette.common.white,
   },
   [`&.${tableCellClasses.body}`]: {
-    fontSize: 14, // Force white text color for body rows
+    fontSize: 14,
   },
 }));
 
@@ -41,32 +50,129 @@ const StyledTableRow = styled(TableRow)(({ theme }) => ({
 }));
 
 function UserDashboard() {
-  const [records, setRecords] = useState([]); // Store patient records
-  const [page, setPage] = useState(0); // Store current page
+  const [records, setRecords] = useState([]);
+  const [page, setPage] = useState(0);
   const [rowsPerPage] = useState(5);
+  const [patientId, setPatientId] = useState('');
+  const [open, setOpen] = useState(false);
+  const [dentists, setDentists] = useState([]);
+  const [selectedDentist, setSelectedDentist] = useState('');
+  const [appointmentDate, setAppointmentDate] = useState(null);
+  const [appointmentTime, setAppointmentTime] = useState(null);
+  const [statusFilter, setStatusFilter] = useState('all');
 
-  // Handle page change
+  const userId = sessionStorage.getItem("userId");
+  const role = sessionStorage.getItem("role");
+
+  const handleOpen = () => setOpen(true);
+  const handleClose = () => {
+    setOpen(false);
+    setSelectedDentist('');
+    setAppointmentDate(null);
+    setAppointmentTime(null);
+  };
+
+  useEffect(() => {
+    const fetchPatientProfile = async () => {
+      try {
+        const res = await axios.get(`http://localhost:1337/patient/profile/${userId}`);
+        if (res.data.patientId) {
+          setPatientId(res.data.patientId); 
+        } else {
+          console.error("Patient ID not found");
+        }
+      } catch (error) {
+        console.error("Failed to fetch patient profile:", error);
+      }
+    };
+
+    const fetchDentists = async () => {
+      try {
+        const res = await axios.get("http://localhost:1337/dentist/profile");
+        setDentists(res.data);
+      } catch (err) {
+        console.error("Error fetching dentists:", err);
+      }
+    };
+
+    fetchPatientProfile();
+    fetchDentists();
+  }, [userId, role]);
+
+  // Fetch appointments based on patientId and status
+const fetchAppointments = async (status) => {
+  try {
+    const res = await axios.get(`http://localhost:1337/appointment/${status}/${patientId}`);
+    const appointmentsWithDentists = await Promise.all(res.data.map(async (appointment) => {
+      // Fetch dentist details based on dentistId
+      const dentistRes = await axios.get(`http://localhost:1337/dentist/profile/${appointment.dentistId}`);
+      const dentistName = dentistRes.data.name;  // Assuming the response has a `name` field
+      return { ...appointment, dentistName };
+    }));
+    setRecords(appointmentsWithDentists);
+  } catch (err) {
+    console.error("Error fetching appointments:", err);
+  }
+};
+
+  useEffect(() => {
+    if (patientId) {
+      fetchAppointments(statusFilter); 
+    }
+  }, [patientId, statusFilter]);
+
   const handleChangePage = (event, newPage) => {
     setPage(newPage);
   };
 
-  // Fetch records data
-  useEffect(() => {
-    const fetchRecords = async () => {
-      const fetchedRecords = [
-        { record_id: 1, patient_id: 101, dentist_id: 201, diagnosis: "Cavity", images: [], fine: 100, visit_date: '2025-05-01' },
-        { record_id: 2, patient_id: 102, dentist_id: 202, diagnosis: "Check-up", images: [], fine: 0, visit_date: '2025-05-02' },
-        { record_id: 3, patient_id: 103, dentist_id: 203, diagnosis: "Braces Adjustment", images: [], fine: 50, visit_date: '2025-05-03' },
-        { record_id: 4, patient_id: 104, dentist_id: 204, diagnosis: "Root Canal", images: [], fine: 500, visit_date: '2025-05-04' },
-        { record_id: 5, patient_id: 105, dentist_id: 205, diagnosis: "Extraction", images: [], fine: 300, visit_date: '2025-05-05' },
-        { record_id: 6, patient_id: 106, dentist_id: 206, diagnosis: "Cleaning", images: [], fine: 0, visit_date: '2025-05-06' },
-      ];
-      setRecords(fetchedRecords);
-    };
-    fetchRecords();
-  }, []);
+  const handleSubmitAppointment = async () => {
+    if (!selectedDentist) {
+      alert("Please select a dentist.");
+      return;
+    }
 
-  // Table rows to be displayed based on current page
+    if (!appointmentDate || !appointmentTime) {
+      alert("Please select both a date and time.");
+      return;
+    }
+
+    const selectedDateTime = appointmentDate
+      .hour(appointmentTime.hour())
+      .minute(appointmentTime.minute());
+
+    const now = dayjs();
+
+    if (selectedDateTime.isBefore(now)) {
+      alert("You cannot set an appointment in the past. Please choose a future date and time.");
+      return;
+    }
+
+    try {
+      const payload = {
+        patientId: patientId,
+        dentistId: selectedDentist,
+        appointmentDate: appointmentDate.toDate(),
+        appointmentTime: appointmentTime.format("HH:mm"),
+      };
+      await axios.post("http://localhost:1337/appointment/create", payload);
+      alert("Appointment created successfully!");
+      handleClose();
+    } catch (err) {
+      console.error("Failed to create appointment:", err);
+    }
+  };
+
+  const handleCancelAppointment = async (appointmentId) => {
+  try {
+    const res = await axios.put(`http://localhost:1337/appointment/cancel/${appointmentId}`, {
+    });
+    alert("Appointment cancelled successfully!");
+    fetchAppointments(statusFilter);  // Refresh the appointments
+  } catch (err) {
+    console.error("Failed to cancel appointment:", err);
+    alert("Error cancelling appointment.");
+  }
+};
   const displayedRecords = records.slice(page * rowsPerPage, page * rowsPerPage + rowsPerPage);
 
   return (
@@ -76,73 +182,126 @@ function UserDashboard() {
         <div className="dashboard-Funct">
           <div className="Text">
             <h1>Welcome to Molar Records!</h1>
-            <div className="MinorDetailsforMolarRecordInPatientDashboard">
-              <h2>Your dental visit history and treatment details are securely recorded here.</h2>
-              
-              <h3> Easily track your past diagnoses, visits, and any pending fines. Stay updated with your latest dental records, upcoming appointments, and visit summaries. Your oral health history is just a click away.</h3>
-            </div>
-            <Divider sx={{ borderColor: '#1C444D', borderBottomWidth: 2, width: '100%', display: 'block' }} />
+            <h2>Your dental visit history and treatment details are securely recorded here.</h2>
+            <h3>Easily track your past diagnoses, visits, and any pending fines.</h3>
+            <Divider sx={{ borderColor: '#1C444D', borderBottomWidth: 2, width: '100%' }} />
             <div className="BtnAppointment">
-              <Button variant="contained" sx={{ backgroundColor: "#3AB286" }}>
+              <Button variant="contained" sx={{ backgroundColor: "#3AB286" }} onClick={handleOpen}>
                 Make Appointment
               </Button>
             </div>
           </div>
 
           <div className="Table">
-            <h2>Latest Patient Records</h2>
-            <div className="RecordTable">
-              <TableContainer component={Paper}>
-                <Table stickyHeader>
-                  <TableHead>
-                    <TableRow>
-                      <StyledTableCell>Record ID</StyledTableCell>
-                      <StyledTableCell>Dentist ID</StyledTableCell>
-                      <StyledTableCell>Fine</StyledTableCell>
-                      <StyledTableCell>Visit Date</StyledTableCell>
-                    </TableRow>
-                  </TableHead>
-                  <TableBody>
-                    {displayedRecords.map((record) => (
-                      <StyledTableRow key={record.record_id}>
-                        <StyledTableCell>{record.record_id}</StyledTableCell>
-                        <StyledTableCell>{record.dentist_id}</StyledTableCell>
-                        <StyledTableCell>{record.fine}</StyledTableCell>
-                        <StyledTableCell>{record.visit_date}</StyledTableCell>
-                      </StyledTableRow>
-                    ))}
-                  </TableBody>
-                </Table>
-              </TableContainer>
+            <h2>Latest Patient Appointments</h2>
+            <div>
+              <Button onClick={() => { setStatusFilter('completed'); fetchAppointments('completed'); }}>Completed</Button>
+              <Button onClick={() => { setStatusFilter('confirmed'); fetchAppointments('confirmed'); }}>confirmed</Button>
+              <Button onClick={() => { setStatusFilter('pending'); fetchAppointments('pending'); }}>Pending</Button>
             </div>
+            <TableContainer component={Paper}>
+            <Table stickyHeader>
+              <TableHead>
+                <TableRow>
+                  <StyledTableCell>Appointment Date</StyledTableCell>
+                  <StyledTableCell>Appointment Time</StyledTableCell>
+                  <StyledTableCell>Dentist Name</StyledTableCell>
+                  <StyledTableCell>Status</StyledTableCell>
+                  {statusFilter === 'pending' && (
+                    <StyledTableCell style={{ backgroundColor: 'black', color: 'white' }}>Action</StyledTableCell>
+                  )}
+                  {statusFilter === 'completed' && (
+                    <StyledTableCell>Remarks</StyledTableCell> // Add Remarks header for completed status
+                  )}
+                </TableRow>
+              </TableHead>
+              <TableBody>
+                {displayedRecords.map((appointment) => (
+                  <StyledTableRow key={appointment._id}>
+                    <StyledTableCell>{new Date(appointment.appointmentDate).toLocaleDateString()}</StyledTableCell>
+                    <StyledTableCell>{dayjs(appointment.appointmentTime, 'HH:mm').format('hh:mm A')}</StyledTableCell>
+                    <StyledTableCell>{appointment.dentistName || "Unknown"}</StyledTableCell>
+                    <StyledTableCell>{appointment.status}</StyledTableCell>
+                    {appointment.status === 'pending' && (
+                      <StyledTableCell>
+                        <Button onClick={() => handleCancelAppointment(appointment._id)} color="error">Cancel</Button>
+                      </StyledTableCell>
+                    )}
+                    {appointment.status === 'completed' && (
+                      <StyledTableCell>{appointment.remarks || "No remarks available"}</StyledTableCell> // Display Remarks if completed
+                    )}
+                  </StyledTableRow>
+                ))}
+              </TableBody>
+            </Table>
+          </TableContainer>
+
             <TablePagination
               component="div"
               count={records.length}
               rowsPerPage={rowsPerPage}
               page={page}
               onPageChange={handleChangePage}
-              rowsPerPageOptions={[]}  // Hide the rows per page selector
+              rowsPerPageOptions={[]}
             />
           </div>
         </div>
+
         <div className="DetailsandEtc">
-          <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center' }}>
-            <img src={OrthoIn} alt="Dental Clinic Banner" style={{ width: '300px', height: 'auto' }} />
+          <div style={{ display: 'flex', justifyContent: 'center' }}>
+            <img src={OrthoIn} alt="Dental" style={{ width: '300px', height: 'auto' }} />
           </div>
           <div className="AppointmentSection">
             <h2>Appointment Dates</h2>
-            <div className="CalendarMain">
-              <div className="CalendarPart">
-                <LocalizationProvider dateAdapter={AdapterDayjs}>
-                  <div className="calendar-wrapper" style={{ width: '400px', height: 'auto' }}>
-                    <DateCalendar showDaysOutsideCurrentMonth fixedWeekNumber={6} />
-                  </div>
-                </LocalizationProvider>
-              </div>
-            </div>
+            <LocalizationProvider dateAdapter={AdapterDayjs}>
+              <DateCalendar showDaysOutsideCurrentMonth fixedWeekNumber={6} />
+            </LocalizationProvider>
           </div>
         </div>
       </div>
+
+      {/* Modal */}
+      <Dialog open={open} onClose={handleClose}>
+        <DialogTitle>Book an Appointment</DialogTitle>
+        <DialogContent>
+          <TextField
+            fullWidth
+            select
+            label="Select Dentist"
+            value={selectedDentist}
+            onChange={(e) => setSelectedDentist(e.target.value)}
+            margin="dense"
+          >
+            {dentists.map((dentist) => (
+              <MenuItem key={dentist._id} value={dentist.userId}>
+                {dentist.name}
+              </MenuItem>
+            ))}
+          </TextField>
+          <LocalizationProvider dateAdapter={AdapterDayjs}>
+            <DateCalendar
+              value={appointmentDate}
+              onChange={(newDate) => setAppointmentDate(newDate)}
+            />
+            <TimePicker
+              label="Appointment Time"
+              value={appointmentTime}
+              onChange={(newTime) => setAppointmentTime(newTime)}
+              sx={{ mt: 2, width: '100%' }}
+            />
+          </LocalizationProvider>
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={handleClose}>Cancel</Button>
+          <Button
+            onClick={handleSubmitAppointment}
+            variant="contained"
+            sx={{ backgroundColor: "#3AB286" }}
+          >
+            Submit
+          </Button>
+        </DialogActions>
+      </Dialog>
     </div>
   );
 }

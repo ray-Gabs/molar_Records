@@ -29,7 +29,7 @@ exports.registerUser = async (req, res) => {
       userId: uuidv4(),
       email: email.toLowerCase().trim(),
       username: username.trim(),
-      password: hashedPassword,  // Save the hashed password
+      password: hashedPassword,  
       role
     });
 
@@ -92,7 +92,7 @@ exports.loginUser = async (req, res) => {
 
 // Edit user
 exports.editUser = async (req, res) => {
-  const { userId, username, role } = req.body;
+  const { userId, username, role, password } = req.body;
 
   try {
     const user = await User.findOne({ userId });
@@ -110,10 +110,14 @@ exports.editUser = async (req, res) => {
       user.role = role;
     }
 
+    if (password) {
+      user.password = await bcrypt.hash(password, 10); // Hash the new password
+    }
+
     // Save updated user to database
     await user.save();
 
-    const { password, ...userWithoutPassword } = user.toObject();
+    const { password: _, ...userWithoutPassword } = user.toObject(); // Remove password from response
 
     res.status(200).json({ message: "Profile updated successfully", user: userWithoutPassword });
   } catch (err) {
@@ -137,5 +141,35 @@ exports.getUserById = async (req, res) => {
   } catch (err) {
     console.error("Get user by ID error:", err);
     res.status(500).json({ message: "Error retrieving user", error: err.message });
+  }
+};
+
+// Get all users by role (e.g., /user?role=staff)
+exports.getAllUsersByRole = async (req, res) => {
+  const { role } = req.query;
+
+  try {
+    const query = role ? { role } : {};
+    const users = await User.find(query).select("-password"); // exclude password
+    res.status(200).json(users);
+  } catch (err) {
+    console.error("Error fetching users:", err);
+    res.status(500).json({ message: "Error fetching users", error: err.message });
+  }
+};
+
+// Delete user by userId
+exports.deleteUser = async (req, res) => {
+  const { userId } = req.params;
+
+  try {
+    const deletedUser = await User.findOneAndDelete({ userId });
+    if (!deletedUser) {
+      return res.status(404).json({ message: "User not found" });
+    }
+    res.status(200).json({ message: "User deleted successfully" });
+  } catch (err) {
+    console.error("Delete user error:", err);
+    res.status(500).json({ message: "Error deleting user", error: err.message });
   }
 };

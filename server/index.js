@@ -7,10 +7,11 @@ const errorHandler = require("./middleware/errorHandler.js");
 
 // Routes
 const userRoute = require("./routes/userRoute.js");
-const dentistNStaffRoute = require("./routes/dentistNStaffRoute.js");
-const loginNRegisterRoute = require("./routes/loginNRegisterRoute.js");
-const appointmentRoute = require("./routes/appointmentRoute.js");
+const dentistRoute = require("./routes/dentistRoute.js");
+const staffRoute = require("./routes/staffRoute.js");
 const recordRoute = require("./routes/recordRoute.js");
+const appointmentRoute = require("./routes/appointmentRoute.js");
+const loginNRegisterRoute = require("./routes/loginNRegisterRoute.js");
 const patientRoute = require("./routes/patientRoute.js");
 // MongoDB connection
 const connectDB = require("./config/connection.js");
@@ -19,17 +20,17 @@ const app = express();
 
 // Middleware
 app.use(cors());
-app.use(express.json());
+// app.use(express.json());
 
 // Connect to MongoDB
-app.use(express.json({ limit: '50mb' })); // Adjust as needed
+app.use(express.json({ limit: '50mb' }));
 app.use(express.urlencoded({ limit: '50mb', extended: true }));
 connectDB();
 
 // Routes
 app.use("/user", userRoute);
-app.use("/dentist", dentistNStaffRoute);
-app.use("/staff", dentistNStaffRoute);
+app.use("/dentist", dentistRoute);
+app.use("/staff", staffRoute);
 app.use("/patient", patientRoute);
 app.use("/appointment", appointmentRoute);
 app.use("/record", recordRoute);

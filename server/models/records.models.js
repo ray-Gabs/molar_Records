@@ -18,4 +18,4 @@ const recordsSchema = new mongoose.Schema({
   appointmentCreatedAt: { type: Date, default: Date.now }
 });
 
-module.exports = mongoose.model('DentalRecords', recordsSchema);
+module.exports = mongoose.model('Records', recordsSchema);

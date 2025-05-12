@@ -15,4 +15,4 @@ const patientsSchema = new mongoose.Schema({
   profileImage: { type: String },
 });
 
-module.exports = mongoose.model('PatientRecords', patientsSchema);
+module.exports = mongoose.model('Patient', patientsSchema);

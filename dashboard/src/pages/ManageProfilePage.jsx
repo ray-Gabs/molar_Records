@@ -57,7 +57,7 @@ const ManageProfilePage = () => {
 
   const getImageSrc = (image) => {
     if (!image) return "";
-    return image.startsWith('data:image') ? image : `data:image/png;base64,${image}`;
+    return image.startsWith("data:image") ? image : `data:image/png;base64,${image}`;
   };
 
   return (
@@ -70,7 +70,7 @@ const ManageProfilePage = () => {
           <label htmlFor="profile-pic" className="customFile">
             <Avatar
               alt="Profile Picture"
-              src={getImageSrc(profile?.profileImages?.[0])}
+              src={getImageSrc(profile?.profileImage)}
               sx={{ width: 100, height: 100 }}
             />
           </label>
@@ -78,9 +78,21 @@ const ManageProfilePage = () => {
             type="file"
             id="profile-pic"
             name="profile-pic"
-            accept="image/png, image/jpeg"
+            accept="image/png, image/jpeg, image/jpg" 
             style={{ display: "none" }}
-            onChange={(e) => setProfile((prev) => ({ ...prev, profilePicture: e.target.files[0] }))}
+            onChange={(e) => {
+              const file = e.target.files[0];
+              if (!file) return;
+
+              const reader = new FileReader();
+              reader.onloadend = () => {
+                setProfile((prev) => ({
+                  ...prev,
+                  profileImage: reader.result.replace(/^data:image\/(png|jpeg|jpg);base64,/, ''),
+                }));
+              };
+              reader.readAsDataURL(file);
+            }}
           />
           <TextField label="Name" fullWidth margin="dense" value={profile?.name || ""} disabled />
           <TextField
@@ -155,7 +167,7 @@ const EditProfileForm = ({ profile, setProfile, userId, role, onClose }) => {
     birthdate: "",
     address: "",
     contactNumber: "",
-    profilePicture: "",  // this will hold the base64 string
+    profilePicture: "", 
   });
 
   useEffect(() => {
@@ -165,7 +177,7 @@ const EditProfileForm = ({ profile, setProfile, userId, role, onClose }) => {
         birthdate: profile.birthdate || "",
         address: profile.address || "",
         contactNumber: profile.contactNumber || "",
-        profilePicture: profile.profileImages?.[0] || "",  // Safely access profileImages
+        profileImage: profile.profileImage || "", 
       });
     }
   }, [profile]);
@@ -176,7 +188,7 @@ const EditProfileForm = ({ profile, setProfile, userId, role, onClose }) => {
 
     const reader = new FileReader();
     reader.onloadend = () => {
-      setFormData((prev) => ({ ...prev, profilePicture: reader.result })); // Handle base64 string
+      setFormData((prev) => ({ ...prev, profilePicture: reader.result })); 
     };
     reader.readAsDataURL(file);
   };
@@ -193,8 +205,8 @@ const EditProfileForm = ({ profile, setProfile, userId, role, onClose }) => {
         : `http://localhost:1337/${role}/create`;
 
       const base64Data = formData.profilePicture
-        ? formData.profilePicture.replace(/^data:image\/(png|jpeg);base64,/, '')
-        : null;
+        ? formData.profilePicture.replace(/^data:image\/(png|jpeg|jpg);base64,/, "")
+        : profile?.profileImage || ""; 
 
       const payload = {
         userId,
@@ -202,7 +214,7 @@ const EditProfileForm = ({ profile, setProfile, userId, role, onClose }) => {
         birthdate: formData.birthdate,
         address: formData.address,
         contactNumber: formData.contactNumber,
-        profileImages: base64Data ? [base64Data] : [],
+         profileImages: base64Data ? `data:image/png;base64,${base64Data}` : "",
       };
 
       const response = await axios({
@@ -217,23 +229,19 @@ const EditProfileForm = ({ profile, setProfile, userId, role, onClose }) => {
 
       if (response.status === 200) {
         alert("Profile saved successfully!");
-        setProfile(response.data); // This will now include the new base64 image
+        setProfile(response.data); 
         onClose();
       }
     } catch (err) {
-      if (err.response) {
-        console.error('Backend error:', err.response.data);
-        alert(`Error: ${err.response.data.message || 'An error occurred'}`);
-      } else {
-        console.error("Error:", err);
-        alert('An unknown error occurred.');
-      }
+      console.error("Error saving profile:", err);
+      alert("An error occurred while saving the profile.");
     }
   };
 
   return (
     <>
-      <input type="file" accept="image/*" onChange={handleImageChange} />
+      <input type="file" accept="image/jpeg, image/png, image/jpg" onChange={handleImageChange} /> 
+
       {formData.profilePicture && (
         <Avatar src={formData.profilePicture} sx={{ width: 100, height: 100, mt: 2 }} />
       )}
@@ -309,8 +317,8 @@ const EditUserForm = ({ userDetails, setUserDetails, userId, onClose }) => {
 
       if (response.status === 200) {
         alert("User details updated successfully!");
-        setUserDetails(response.data);  // Update user details state with the new data
-        onClose();  // Close modal
+        setUserDetails(response.data);
+        onClose(); 
       } else {
         console.error("Failed to update user details");
       }

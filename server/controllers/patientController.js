@@ -42,7 +42,7 @@ exports.createProfile = async (req, res) => {
       birthdate: newProfile.birthdate,
       address: newProfile.address,
       contactNumber: newProfile.contactNumber,
-      profileImages: base64Image ? [`data:image/png;base64,${base64Image}`] : [],
+      profileImages: base64Image ? `data:image/png;base64,${base64Image}` : null,
     });
 
   } catch (err) {
@@ -68,14 +68,14 @@ exports.getProfile = async (req, res) => {
     }
 
     res.status(200).json({
+      patientId: profile.patient_Id, 
       userId: profile.userId,
       name: profile.name,
       birthdate: profile.birthdate,
       address: profile.address,
       contactNumber: profile.contactNumber,
-      profileImages: base64Image ? [`data:image/png;base64,${base64Image}`] : [],
+      profileImage: base64Image ? `data:image/png;base64,${base64Image}` : null,
     });
-
   } catch (err) {
     console.error("Error fetching profile:", err);
     res.status(500).json({ message: "Error fetching profile", error: err.message });
@@ -96,25 +96,50 @@ exports.editProfile = async (req, res) => {
 
     let profileImagePath = existingProfile.profileImage;
 
-    if (typeof profileImages === 'string' && profileImages.startsWith('data:image')) {
-      // Delete old image file if it exists
+    // Handle new image upload if provided as base64 in profileImages[0]
+    if (
+      Array.isArray(profileImages) &&
+      profileImages.length > 0 &&
+      profileImages[0].startsWith('data:image')
+    ) {
       if (profileImagePath && fs.existsSync(profileImagePath)) {
         fs.unlinkSync(profileImagePath);
       }
 
-      const base64Data = profileImages.replace(/^data:image\/\w+;base64,/, '');
+      const base64Data = profileImages[0].replace(/^data:image\/\w+;base64,/, '');
       const buffer = Buffer.from(base64Data, 'base64');
       profileImagePath = `uploads/profile_${Date.now()}.png`;
       fs.writeFileSync(profileImagePath, buffer);
     }
 
+    // Update the profile
     const updatedProfile = await PatientRecords.findOneAndUpdate(
       { userId },
-      { name, birthdate, address, contactNumber, profileImage: profileImagePath },
+      {
+        name,
+        birthdate,
+        address,
+        contactNumber,
+        profileImage: profileImagePath,
+      },
       { new: true }
     );
 
-    res.status(200).json({ message: "Profile updated successfully", updatedProfile });
+    // Convert saved image to base64 to send back to frontend
+    let base64Image = null;
+    if (updatedProfile.profileImage && fs.existsSync(updatedProfile.profileImage)) {
+      const imageBuffer = fs.readFileSync(updatedProfile.profileImage);
+      base64Image = imageBuffer.toString('base64');
+    }
+
+    res.status(200).json({
+      userId: updatedProfile.userId,
+      name: updatedProfile.name,
+      birthdate: updatedProfile.birthdate,
+      address: updatedProfile.address,
+      contactNumber: updatedProfile.contactNumber,
+      profileImage: base64Image ? `data:image/png;base64,${base64Image}` : null,
+    });
   } catch (err) {
     console.error("Error updating profile:", err);
     res.status(500).json({ message: "Error updating profile", error: err.message });
