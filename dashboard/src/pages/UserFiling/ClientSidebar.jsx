@@ -61,14 +61,14 @@ function ClientDashboard() {
       hidden: role !== 'staff' && role !== 'dentist',
     },
     {
-      key: '5',
+      key: '6',
       icon: <FileTextOutlined />,
       label: 'Manage Records',
       onClick: () => navigate('/ManageRecord'),
       hidden: role !== 'staff' && role !== 'dentist',
     },
     {
-      key: '6',
+      key: '7',
       icon: <LogoutOutlined />,
       label: 'Logout',
       onClick: handleLogout,

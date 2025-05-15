@@ -1,7 +1,7 @@
 const Appointments = require('../models/appointment.models');
 
 // Create new appointment
-exports.createRecord = async (req, res) => {
+exports.createAppointment = async (req, res) => {
   try {
     const { patientId, dentistId, appointmentDate, appointmentTime, status, remarks } = req.body;
 
@@ -24,11 +24,11 @@ exports.createRecord = async (req, res) => {
 };
 
 // Get appointment by appointmentId
-exports.getRecord = async (req, res) => {
+exports.getAppointment = async (req, res) => {
   const { recordId } = req.params;
 
   try {
-    const appointment = await Appointments.findOne({ appointmentId: recordId });
+    const appointment = await Appointments.findById(recordId);
 
     if (!appointment) {
       return res.status(404).json({ message: "Appointment not found" });
@@ -42,7 +42,7 @@ exports.getRecord = async (req, res) => {
 };
 
 // Get all appointments
-exports.getAllRecord = async (req, res) => {
+exports.getAllAppointment = async (req, res) => {
   try {
     const appointments = await Appointments.find();
     res.status(200).json(appointments);
@@ -53,13 +53,13 @@ exports.getAllRecord = async (req, res) => {
 };
 
 // Edit appointment by appointmentId
-exports.editRecord = async (req, res) => {
-  const { recordId } = req.params;
+exports.editAppointment = async (req, res) => {
+  const { inputAppointmentId } = req.params;
   const updateFields = req.body;
 
   try {
     const updated = await Appointments.findOneAndUpdate(
-      { appointmentId: recordId },
+      { appointmentId: inputAppointmentId },
       updateFields,
       { new: true }
     );
@@ -74,13 +74,14 @@ exports.editRecord = async (req, res) => {
     res.status(500).json({ message: "Error updating appointment", error: err.message });
   }
 };
+;
 
 // Delete appointment by appointmentId
-exports.deleteRecord = async (req, res) => {
-  const { recordId } = req.params;
+exports.deleteAppointment = async (req, res) => {
+  const { appointmentId } = req.params;
 
   try {
-    const deleted = await Appointments.findOneAndDelete({ appointmentId: recordId });
+    const deleted = await Appointments.findOneAndDelete({ appointmentId });
 
     if (!deleted) {
       return res.status(404).json({ message: "Appointment not found" });
@@ -92,7 +93,7 @@ exports.deleteRecord = async (req, res) => {
     res.status(500).json({ message: "Error deleting appointment", error: err.message });
   }
 };
-// Get all appointments by patient ID
+
 exports.getAllAppointmentsByPatientId = async (req, res) => {
   const { patientId } = req.params;
 
@@ -120,11 +121,11 @@ exports.getAllAppointmentsByStatus = async (req, res) => {
 
 // Edit appointment status to 'cancelled'
 exports.cancelAppointment = async (req, res) => {
-  const { appointmentId } = req.params;  // changed to appointmentId
+  const { appointmentId } = req.params;  
 
   try {
     const updatedAppointment = await Appointments.findOneAndUpdate(
-      { _id: appointmentId },  // changed recordId to appointmentId
+       { appointmentId }, 
       { status: 'cancelled' },
       { new: true }
     );
@@ -140,6 +141,29 @@ exports.cancelAppointment = async (req, res) => {
   }
 };
 
+// Confirm appointment by appointmentId
+exports.confirmAppointment = async (req, res) => {
+  const { appointmentId } = req.params;
+
+  try {
+    const updatedAppointment = await Appointments.findOneAndUpdate(
+      { appointmentId }, 
+      { status: 'confirmed' },
+      { new: true }
+    );
+
+    if (!updatedAppointment) {
+      return res.status(404).json({ message: "Appointment not found" });
+    }
+
+    res.status(200).json(updatedAppointment);
+  } catch (err) {
+    console.error("Error confirming appointment:", err);
+    res.status(500).json({ message: "Error confirming appointment", error: err.message });
+  }
+};
+
+
 // Get all appointments by status and patient ID
 exports.getAllAppointmentsByStatusAndPatientId = async (req, res) => {
   const { status, patientId } = req.params;
@@ -150,5 +174,18 @@ exports.getAllAppointmentsByStatusAndPatientId = async (req, res) => {
   } catch (err) {
     console.error("Error fetching appointments by status and patient ID:", err);
     res.status(500).json({ message: "Error fetching appointments by status and patient ID", error: err.message });
+  }
+};
+
+//get all appointments by status and dentist ID
+exports.getAllAppointmentsByStatusAndDentistId = async (req, res) => {
+  const { status, dentistId } = req.params;
+
+  try {
+    const appointments = await Appointments.find({ status, dentistId });
+    res.status(200).json(appointments);
+  } catch (err) {
+    console.error("Error fetching appointments by status and dentist ID:", err);
+    res.status(500).json({ message: "Error fetching appointments by status and dentist ID", error: err.message });
   }
 };

@@ -1,7 +1,7 @@
 const { v4: uuidv4 } = require('uuid');
 const mongoose = require('mongoose');
 const appointmentSchema = new mongoose.Schema({
-  appointmentId: { type: String, default: uuidv4, unique: true }, // Primary Key
+  appointmentId: { type: String, default: uuidv4, unique: true }, 
   patientId: { type: String, required: true },
   dentistId: { type: String, required: true },
   appointmentDate: { type: Date, required: true },

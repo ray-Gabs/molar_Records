@@ -75,9 +75,10 @@ function UserDashboard() {
   useEffect(() => {
     const fetchPatientProfile = async () => {
       try {
-        const res = await axios.get(`http://localhost:1337/patient/profile/${userId}`);
+        const res = await axios.get(`http://localhost:1337/patient/profile/user/${userId}`);
+        console.log("Fetched patient profile:", res.data); 
         if (res.data.patientId) {
-          setPatientId(res.data.patientId); 
+          setPatientId(res.data.patientId);
         } else {
           console.error("Patient ID not found");
         }
@@ -99,21 +100,19 @@ function UserDashboard() {
     fetchDentists();
   }, [userId, role]);
 
-  // Fetch appointments based on patientId and status
-const fetchAppointments = async (status) => {
-  try {
-    const res = await axios.get(`http://localhost:1337/appointment/${status}/${patientId}`);
-    const appointmentsWithDentists = await Promise.all(res.data.map(async (appointment) => {
-      // Fetch dentist details based on dentistId
-      const dentistRes = await axios.get(`http://localhost:1337/dentist/profile/${appointment.dentistId}`);
-      const dentistName = dentistRes.data.name;  // Assuming the response has a `name` field
-      return { ...appointment, dentistName };
-    }));
-    setRecords(appointmentsWithDentists);
-  } catch (err) {
-    console.error("Error fetching appointments:", err);
-  }
-};
+  const fetchAppointments = async (status) => {
+    try {
+      const res = await axios.get(`http://localhost:1337/appointment/${status}/${patientId}`);
+      const appointmentsWithDentists = await Promise.all(res.data.map(async (appointment) => {
+        const dentistRes = await axios.get(`http://localhost:1337/dentist/profile/dentist/${appointment.dentistId}`);
+        const dentistName = dentistRes.data.name;
+        return { ...appointment, dentistName };
+      }));
+      setRecords(appointmentsWithDentists);
+    } catch (err) {
+      console.error("Error fetching appointments:", err);
+    }
+  };
 
   useEffect(() => {
     if (patientId) {
@@ -153,7 +152,9 @@ const fetchAppointments = async (status) => {
         dentistId: selectedDentist,
         appointmentDate: appointmentDate.toDate(),
         appointmentTime: appointmentTime.format("HH:mm"),
+        status: "pending", // ✅ Always set to pending
       };
+      console.log("Submitting appointment with patientId:", patientId);
       await axios.post("http://localhost:1337/appointment/create", payload);
       alert("Appointment created successfully!");
       handleClose();
@@ -163,16 +164,16 @@ const fetchAppointments = async (status) => {
   };
 
   const handleCancelAppointment = async (appointmentId) => {
-  try {
-    const res = await axios.put(`http://localhost:1337/appointment/cancel/${appointmentId}`, {
-    });
-    alert("Appointment cancelled successfully!");
-    fetchAppointments(statusFilter);  // Refresh the appointments
-  } catch (err) {
-    console.error("Failed to cancel appointment:", err);
-    alert("Error cancelling appointment.");
-  }
-};
+    try {
+      const res = await axios.put(`http://localhost:1337/appointment/cancel/${appointmentId}`);
+      alert("Appointment cancelled successfully!");
+      fetchAppointments(statusFilter);
+    } catch (err) {
+      console.error("Failed to cancel appointment:", err);
+      alert("Error cancelling appointment.");
+    }
+  };
+
   const displayedRecords = records.slice(page * rowsPerPage, page * rowsPerPage + rowsPerPage);
 
   return (
@@ -196,45 +197,45 @@ const fetchAppointments = async (status) => {
             <h2>Latest Patient Appointments</h2>
             <div>
               <Button onClick={() => { setStatusFilter('completed'); fetchAppointments('completed'); }}>Completed</Button>
-              <Button onClick={() => { setStatusFilter('confirmed'); fetchAppointments('confirmed'); }}>confirmed</Button>
+              <Button onClick={() => { setStatusFilter('confirmed'); fetchAppointments('confirmed'); }}>Confirmed</Button>
               <Button onClick={() => { setStatusFilter('pending'); fetchAppointments('pending'); }}>Pending</Button>
             </div>
             <TableContainer component={Paper}>
-            <Table stickyHeader>
-              <TableHead>
-                <TableRow>
-                  <StyledTableCell>Appointment Date</StyledTableCell>
-                  <StyledTableCell>Appointment Time</StyledTableCell>
-                  <StyledTableCell>Dentist Name</StyledTableCell>
-                  <StyledTableCell>Status</StyledTableCell>
-                  {statusFilter === 'pending' && (
-                    <StyledTableCell style={{ backgroundColor: 'black', color: 'white' }}>Action</StyledTableCell>
-                  )}
-                  {statusFilter === 'completed' && (
-                    <StyledTableCell>Remarks</StyledTableCell> // Add Remarks header for completed status
-                  )}
-                </TableRow>
-              </TableHead>
-              <TableBody>
-                {displayedRecords.map((appointment) => (
-                  <StyledTableRow key={appointment._id}>
-                    <StyledTableCell>{new Date(appointment.appointmentDate).toLocaleDateString()}</StyledTableCell>
-                    <StyledTableCell>{dayjs(appointment.appointmentTime, 'HH:mm').format('hh:mm A')}</StyledTableCell>
-                    <StyledTableCell>{appointment.dentistName || "Unknown"}</StyledTableCell>
-                    <StyledTableCell>{appointment.status}</StyledTableCell>
-                    {appointment.status === 'pending' && (
-                      <StyledTableCell>
-                        <Button onClick={() => handleCancelAppointment(appointment._id)} color="error">Cancel</Button>
-                      </StyledTableCell>
+              <Table stickyHeader>
+                <TableHead>
+                  <TableRow>
+                    <StyledTableCell>Appointment Date</StyledTableCell>
+                    <StyledTableCell>Appointment Time</StyledTableCell>
+                    <StyledTableCell>Dentist Name</StyledTableCell>
+                    <StyledTableCell>Status</StyledTableCell>
+                    {statusFilter === 'pending' && (
+                      <StyledTableCell style={{ backgroundColor: 'black', color: 'white' }}>Action</StyledTableCell>
                     )}
-                    {appointment.status === 'completed' && (
-                      <StyledTableCell>{appointment.remarks || "No remarks available"}</StyledTableCell> // Display Remarks if completed
+                    {statusFilter === 'completed' && (
+                      <StyledTableCell>Remarks</StyledTableCell>
                     )}
-                  </StyledTableRow>
-                ))}
-              </TableBody>
-            </Table>
-          </TableContainer>
+                  </TableRow>
+                </TableHead>
+                <TableBody>
+                  {displayedRecords.map((appointment) => (
+                    <StyledTableRow key={appointment._id}>
+                      <StyledTableCell>{new Date(appointment.appointmentDate).toLocaleDateString()}</StyledTableCell>
+                      <StyledTableCell>{dayjs(appointment.appointmentTime, 'HH:mm').format('hh:mm A')}</StyledTableCell>
+                      <StyledTableCell>{appointment.dentistName || "Unknown"}</StyledTableCell>
+                      <StyledTableCell>{appointment.status}</StyledTableCell>
+                      {appointment.status === 'pending' && (
+                        <StyledTableCell>
+                          <Button onClick={() => handleCancelAppointment(appointment._id)} color="error">Cancel</Button>
+                        </StyledTableCell>
+                      )}
+                      {appointment.status === 'completed' && (
+                        <StyledTableCell>{appointment.remarks || "No remarks available"}</StyledTableCell>
+                      )}
+                    </StyledTableRow>
+                  ))}
+                </TableBody>
+              </Table>
+            </TableContainer>
 
             <TablePagination
               component="div"
@@ -273,7 +274,7 @@ const fetchAppointments = async (status) => {
             margin="dense"
           >
             {dentists.map((dentist) => (
-              <MenuItem key={dentist._id} value={dentist.userId}>
+              <MenuItem key={dentist._id} value={dentist.dentistId}>
                 {dentist.name}
               </MenuItem>
             ))}

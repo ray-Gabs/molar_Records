@@ -12,7 +12,7 @@ const upload = multer({ dest: 'uploads/' });
 router.post('/create', upload.array('profileImages', 5), processImage, createProfile); 
 
 // Get profile by userId
-router.get('/profile/:userId', getProfile);
+router.get('/profile/user/:userId', getProfile);
 
 // Edit profile by userId
 router.put('/profile/:userId', editProfile);

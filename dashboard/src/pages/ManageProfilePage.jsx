@@ -12,7 +12,6 @@ const ManageProfilePage = () => {
   const [openProfileModal, setOpenProfileModal] = useState(false);
   const [openUserModal, setOpenUserModal] = useState(false);
 
-  // Fetch user and profile data
   useEffect(() => {
     const fetchData = async () => {
       try {
@@ -22,20 +21,14 @@ const ManageProfilePage = () => {
           return;
         }
 
-        // Fetch user data
         const userRes = await axios.get(`http://localhost:1337/auth/user/${userId}`, {
-          headers: {
-            Authorization: `Bearer ${token}`,
-          },
+          headers: { Authorization: `Bearer ${token}` },
         });
         setUserDetails(userRes.data);
 
-        // Fetch profile data based on role
         try {
           const profileRes = await axios.get(`http://localhost:1337/${role}/profile/${userId}`, {
-            headers: {
-              Authorization: `Bearer ${token}`,
-            },
+            headers: { Authorization: `Bearer ${token}` },
           });
           setProfile(profileRes.data);
         } catch (profileErr) {
@@ -64,7 +57,6 @@ const ManageProfilePage = () => {
     <div className="ManageProfilePage">
       <ClientSidebar />
       <div className="profile-container">
-        {/* Profile Info */}
         <div className="container">
           <h2>Manage Profile</h2>
           <label htmlFor="profile-pic" className="customFile">
@@ -78,17 +70,16 @@ const ManageProfilePage = () => {
             type="file"
             id="profile-pic"
             name="profile-pic"
-            accept="image/png, image/jpeg, image/jpg" 
+            accept="image/png, image/jpeg, image/jpg"
             style={{ display: "none" }}
             onChange={(e) => {
               const file = e.target.files[0];
               if (!file) return;
-
               const reader = new FileReader();
               reader.onloadend = () => {
                 setProfile((prev) => ({
                   ...prev,
-                  profileImage: reader.result.replace(/^data:image\/(png|jpeg|jpg);base64,/, ''),
+                  profileImage: reader.result,
                 }));
               };
               reader.readAsDataURL(file);
@@ -118,7 +109,6 @@ const ManageProfilePage = () => {
           </Button>
         </div>
 
-        {/* User Info */}
         <div className="container">
           <h2>Manage User Details</h2>
           <TextField label="Username" fullWidth margin="dense" value={userDetails.username || ""} disabled />
@@ -130,7 +120,6 @@ const ManageProfilePage = () => {
         </div>
       </div>
 
-      {/* Profile Modal */}
       <Modal open={openProfileModal} onClose={() => setOpenProfileModal(false)}>
         <Box className="modal-box">
           <Typography variant="h6">{profile ? "Edit Profile" : "Create Profile"}</Typography>
@@ -144,7 +133,6 @@ const ManageProfilePage = () => {
         </Box>
       </Modal>
 
-      {/* User Modal */}
       <Modal open={openUserModal} onClose={() => setOpenUserModal(false)}>
         <Box className="modal-box">
           <Typography variant="h6">Edit User Details</Typography>
@@ -160,14 +148,13 @@ const ManageProfilePage = () => {
   );
 };
 
-// Profile Form Component
 const EditProfileForm = ({ profile, setProfile, userId, role, onClose }) => {
   const [formData, setFormData] = useState({
     name: "",
     birthdate: "",
     address: "",
     contactNumber: "",
-    profilePicture: "", 
+    profilePicture: "",
   });
 
   useEffect(() => {
@@ -177,7 +164,7 @@ const EditProfileForm = ({ profile, setProfile, userId, role, onClose }) => {
         birthdate: profile.birthdate || "",
         address: profile.address || "",
         contactNumber: profile.contactNumber || "",
-        profileImage: profile.profileImage || "", 
+        profilePicture: profile.profileImage || "",
       });
     }
   }, [profile]);
@@ -185,10 +172,12 @@ const EditProfileForm = ({ profile, setProfile, userId, role, onClose }) => {
   const handleImageChange = (e) => {
     const file = e.target.files[0];
     if (!file) return;
-
     const reader = new FileReader();
     reader.onloadend = () => {
-      setFormData((prev) => ({ ...prev, profilePicture: reader.result })); 
+      setFormData((prev) => ({
+        ...prev,
+        profilePicture: reader.result,
+      }));
     };
     reader.readAsDataURL(file);
   };
@@ -204,9 +193,9 @@ const EditProfileForm = ({ profile, setProfile, userId, role, onClose }) => {
         ? `http://localhost:1337/${role}/profile/${userId}`
         : `http://localhost:1337/${role}/create`;
 
-      const base64Data = formData.profilePicture
-        ? formData.profilePicture.replace(/^data:image\/(png|jpeg|jpg);base64,/, "")
-        : profile?.profileImage || ""; 
+      const base64Data = formData.profilePicture?.startsWith("data:image")
+        ? formData.profilePicture.replace(/^data:image\/\w+;base64,/, "")
+        : profile?.profileImage?.replace(/^data:image\/\w+;base64,/, "") || "";
 
       const payload = {
         userId,
@@ -214,7 +203,7 @@ const EditProfileForm = ({ profile, setProfile, userId, role, onClose }) => {
         birthdate: formData.birthdate,
         address: formData.address,
         contactNumber: formData.contactNumber,
-         profileImages: base64Data ? `data:image/png;base64,${base64Data}` : "",
+        profileImage: base64Data ? `data:image/png;base64,${base64Data}` : "",
       };
 
       const response = await axios({
@@ -229,7 +218,7 @@ const EditProfileForm = ({ profile, setProfile, userId, role, onClose }) => {
 
       if (response.status === 200) {
         alert("Profile saved successfully!");
-        setProfile(response.data); 
+        setProfile(response.data);
         onClose();
       }
     } catch (err) {
@@ -240,10 +229,16 @@ const EditProfileForm = ({ profile, setProfile, userId, role, onClose }) => {
 
   return (
     <>
-      <input type="file" accept="image/jpeg, image/png, image/jpg" onChange={handleImageChange} /> 
-
+      <input type="file" accept="image/jpeg, image/png, image/jpg" onChange={handleImageChange} />
       {formData.profilePicture && (
-        <Avatar src={formData.profilePicture} sx={{ width: 100, height: 100, mt: 2 }} />
+        <Avatar
+          src={
+            formData.profilePicture.startsWith("data:image")
+              ? formData.profilePicture
+              : `data:image/png;base64,${formData.profilePicture}`
+          }
+          sx={{ width: 100, height: 100, mt: 2 }}
+        />
       )}
       <TextField
         label="Name"
@@ -286,7 +281,6 @@ const EditProfileForm = ({ profile, setProfile, userId, role, onClose }) => {
   );
 };
 
-// User Form Component
 const EditUserForm = ({ userDetails, setUserDetails, userId, onClose }) => {
   const [formData, setFormData] = useState(userDetails);
 
@@ -318,7 +312,7 @@ const EditUserForm = ({ userDetails, setUserDetails, userId, onClose }) => {
       if (response.status === 200) {
         alert("User details updated successfully!");
         setUserDetails(response.data);
-        onClose(); 
+        onClose();
       } else {
         console.error("Failed to update user details");
       }

@@ -2,7 +2,7 @@ const { v4: uuidv4 } = require('uuid');
 const mongoose = require('mongoose');
 
 const patientsSchema = new mongoose.Schema({
-  patient_Id: { type: String, default: uuidv4, unique: true },
+  patientId: { type: String, default: uuidv4, unique: true },
   userId: { type: String, required: true, unique: true },
   name: { type: String, required: true },
   birthdate: { type: Date, required: true },

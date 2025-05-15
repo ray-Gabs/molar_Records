@@ -18,28 +18,29 @@ exports.getProfile = async (req, res) => {
     }
 
     res.status(200).json({
-        userId: profile.userId,
-        name: profile.name,
-        birthdate: profile.birthdate,
-        address: profile.address,
-        contactNumber: profile.contactNumber,
-        profileImage: base64Image ? `data:image/png;base64,${base64Image}` : null,
-      });
+      userId: profile.userId,
+      dentistId: profile.dentistId, // ✅ Explicitly included
+      name: profile.name,
+      birthdate: profile.birthdate,
+      address: profile.address,
+      contactNumber: profile.contactNumber,
+      profileImage: base64Image ? `data:image/png;base64,${base64Image}` : null,
+    });
   } catch (err) {
     console.error("Error fetching profile:", err);
     res.status(500).json({ message: "Error fetching profile", error: err.message });
   }
 };
 
-// Create new Dentist profile
+// Create profile by userId
 exports.createProfile = async (req, res) => {
   try {
-    const { userId, name, birthdate, contactNumber, address, profileImages } = req.body;
+    const { userId, name, birthdate, contactNumber, address, profileImage } = req.body;
 
     let profileImagePath = null;
 
-    if (profileImages && profileImages.startsWith('data:image')) {
-      const base64Data = profileImages.replace(/^data:image\/\w+;base64,/, '');
+    if (profileImage && profileImage.startsWith('data:image')) {
+      const base64Data = profileImage.replace(/^data:image\/\w+;base64,/, '');
       const buffer = Buffer.from(base64Data, 'base64');
       profileImagePath = `uploads/profile_${Date.now()}.png`;
       fs.writeFileSync(profileImagePath, buffer);
@@ -68,7 +69,7 @@ exports.createProfile = async (req, res) => {
       birthdate: newProfile.birthdate,
       address: newProfile.address,
       contactNumber: newProfile.contactNumber,
-      profileImages: base64Image ? `data:image/png;base64,${base64Image}` : null,
+      profileImage: base64Image ? `data:image/png;base64,${base64Image}` : null,
     });
 
   } catch (err) {
@@ -77,29 +78,27 @@ exports.createProfile = async (req, res) => {
   }
 };
 
-
-
-
-// Edit profile by userId
+// Edit Dentist profile by userId
 exports.editProfile = async (req, res) => {
   const { userId } = req.params;
-  const { name, birthdate, address, contactNumber, profileImages } = req.body;
+  const { name, birthdate, address, contactNumber, profileImage } = req.body;
 
   try {
     const existingProfile = await Dentist.findOne({ userId });
+
     if (!existingProfile) {
       return res.status(404).json({ message: "Profile not found" });
     }
 
     let profileImagePath = existingProfile.profileImage;
 
-    if (profileImages && profileImages.startsWith('data:image')) {
-      // Delete old image
+    // If a new image is provided, replace the old one
+    if (profileImage && profileImage.startsWith('data:image')) {
       if (profileImagePath && fs.existsSync(profileImagePath)) {
-        fs.unlinkSync(profileImagePath);
+        fs.unlinkSync(profileImagePath); // Remove old image
       }
 
-      const base64Data = profileImages.replace(/^data:image\/\w+;base64,/, '');
+      const base64Data = profileImage.replace(/^data:image\/\w+;base64,/, '');
       const buffer = Buffer.from(base64Data, 'base64');
       profileImagePath = `uploads/profile_${Date.now()}.png`;
       fs.writeFileSync(profileImagePath, buffer);

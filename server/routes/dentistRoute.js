@@ -14,14 +14,14 @@ router.get('/profile', getAllDentists);
 router.post('/create', upload.array('profileImages', 5), processImage, createProfile); 
 
 // Get profile by userId
-router.get('/profile/:userId', getProfile);
+router.get('/profile/user/:userId', getProfile); 
 
 // Edit profile by userId
 router.put('/profile/:userId', editProfile);
 
 // Delete profile by userId
 router.delete('/profile/:userId', deleteProfile);
-// Get dentist by dentistId
-router.get('/profile/:dentistId', getDentistByDentistId);
+// Get profile by dentistId
+router.get('/profile/dentist/:dentistId', getDentistByDentistId);
 
 module.exports = router;

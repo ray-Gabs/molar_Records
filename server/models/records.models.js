@@ -15,7 +15,7 @@ const recordsSchema = new mongoose.Schema({
     default: 'unpaid'
   },
   visitDate: { type: Date, required: true },
-  appointmentCreatedAt: { type: Date, default: Date.now }
+  recordCreatedAt: { type: Date, default: Date.now }
 });
 
 module.exports = mongoose.model('Records', recordsSchema);
