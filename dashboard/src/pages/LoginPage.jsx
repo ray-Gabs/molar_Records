@@ -6,7 +6,7 @@ import {
   TextField,
   FormControl,
   InputLabel,
-  FilledInput,
+  OutlinedInput,
   InputAdornment,
   IconButton,
 } from "@mui/material";
@@ -20,37 +20,33 @@ function LoginPage({ setIsAuthenticated, setUserRole }) {
   const [showPassword, setShowPassword] = useState(false);
 
   const handleLogin = async () => {
-    console.log("Login attempt with:", userForm);
-  
     const { emailOrUsername, password } = userForm;
     const isEmail = emailOrUsername.includes("@");
-  
+
     try {
       const response = await axios.post("http://localhost:1337/auth/login", {
         email: isEmail ? emailOrUsername.toLowerCase().trim() : "",
         username: !isEmail ? emailOrUsername.trim() : "",
         password,
       });
-  
-      console.log("Response from server:", response.data); // Log the full response
-  
+
       if (response.data.message === "Login successful") {
-      const { authToken, role, userId, email } = response.data;
+        const { authToken, role, userId, email } = response.data;
 
-      sessionStorage.setItem("authToken", authToken);
-      sessionStorage.setItem("userId", userId);
-      sessionStorage.setItem("email", email);
-      sessionStorage.setItem("role", role);
+        sessionStorage.setItem("authToken", authToken);
+        sessionStorage.setItem("userId", userId);
+        sessionStorage.setItem("email", email);
+        sessionStorage.setItem("role", role);
 
-      setUserRole(role); 
-      setIsAuthenticated(true);
+        setUserRole(role);
+        setIsAuthenticated(true);
 
-      if (role === "patient") {
-        navigate("/");
-      } else if (role === "dentist"|| role === "staff") {
-        navigate("/ManageAppointment");
-      }
-    } else {
+        if (role === "patient") {
+          navigate("/");
+        } else {
+          navigate("/ManageAppointment");
+        }
+      } else {
         setError(response.data.message || "Invalid login");
       }
     } catch (err) {
@@ -64,7 +60,7 @@ function LoginPage({ setIsAuthenticated, setUserRole }) {
       <div className="LoginContent">
         <h2>Login</h2>
         {error && <p style={{ color: "red" }}>{error}</p>}
-        
+
         <TextField
           label="Email or Username"
           variant="outlined"
@@ -72,15 +68,27 @@ function LoginPage({ setIsAuthenticated, setUserRole }) {
           margin="dense"
           value={userForm.emailOrUsername}
           onChange={(e) => setUserForm({ ...userForm, emailOrUsername: e.target.value })}
+          InputProps={{
+            startAdornment: (
+              <InputAdornment position="start">
+                <span role="img" aria-label="user">👤</span>
+              </InputAdornment>
+            )
+          }}
         />
-        
-        <FormControl fullWidth margin="dense" variant="filled">
-          <InputLabel htmlFor="filled-adornment-password">Password</InputLabel>
-          <FilledInput
-            id="filled-adornment-password"
+
+        <FormControl fullWidth margin="dense" variant="outlined">
+          <InputLabel htmlFor="outlined-adornment-password">Password</InputLabel>
+          <OutlinedInput
+            id="outlined-adornment-password"
             type={showPassword ? "text" : "password"}
             value={userForm.password}
             onChange={(e) => setUserForm({ ...userForm, password: e.target.value })}
+            startAdornment={
+              <InputAdornment position="start">
+                <span role="img" aria-label="lock">🔒</span>
+              </InputAdornment>
+            }
             endAdornment={
               <InputAdornment position="end">
                 <IconButton onClick={() => setShowPassword(!showPassword)} edge="end">
@@ -88,6 +96,7 @@ function LoginPage({ setIsAuthenticated, setUserRole }) {
                 </IconButton>
               </InputAdornment>
             }
+            label="Password"
           />
         </FormControl>
 

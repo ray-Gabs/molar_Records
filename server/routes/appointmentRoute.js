@@ -12,6 +12,7 @@ const { createAppointment,
     getAllAppointment,
     getAllAppointmentsByPatientId,
     getSpecificDentistByUserId,
+    markAppointmentCompleted,
     getAllAppointmentsByStatus} 
     = require('../controllers/appointmentController');
 const router = express.Router();
@@ -40,8 +41,11 @@ router.get('/status/:status', getAllAppointmentsByStatus);
 router.put('/confirm/:appointmentId', confirmAppointment);
 // Cancel appointment by appointmentId
 router.put('/cancel/:appointmentId', cancelAppointment);
-//get all appointments by status and patientId
+//get dentist by userId
+router.put('/complete/:appointmentId', markAppointmentCompleted);
+// More specific route FIRST
 router.get('/status/:status/patient/:patientId', getAllAppointmentsByStatusAndPatientId);
+
 //get all appointments by status and dentistId
 router.get('/status/:status/:dentistId', getAllAppointmentsByStatusAndDentistId);
 

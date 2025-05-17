@@ -6,7 +6,7 @@ import { styled } from '@mui/material/styles';
 import {
   Table, TableBody, TableCell, tableCellClasses,
   TableContainer, TableHead, TableRow, Paper, TablePagination, Button,
-  Modal, Box, TextField
+  Modal, Box, TextField, MenuItem
 } from '@mui/material';
 import axios from 'axios';
 import dayjs from 'dayjs';
@@ -15,17 +15,21 @@ import './ManageAppointment.css';
 
 const StyledTableCell = styled(TableCell)(({ theme }) => ({
   [`&.${tableCellClasses.head}`]: {
-    backgroundColor: theme.palette.common.black,
-    color: theme.palette.common.white,
+    backgroundColor: '#1c444d',
+    color: '#ffffff',
+    fontWeight: 'bold',
+    textAlign: 'center',
   },
   [`&.${tableCellClasses.body}`]: {
     fontSize: 14,
+    textAlign: 'center',
+    color: '#1c444d',
   },
 }));
 
 const StyledTableRow = styled(TableRow)(({ theme }) => ({
   '&:nth-of-type(odd)': {
-    backgroundColor: theme.palette.action.hover,
+    backgroundColor: '#f2fafa',
   },
   '&:last-child td, &:last-child th': {
     border: 0,
@@ -44,6 +48,28 @@ const modalStyle = {
   p: 4,
 };
 
+const diagnosisTreatmentMap = {
+  'Dental Caries': ['Dental Fillings', 'Inlays / Onlays', 'Crowns', 'Root Canal Therapy'],
+  'Pulpitis': ['Root Canal Therapy', 'Pulpotomy', 'Tooth Extraction'],
+  'Periapical Abscess': ['Root Canal Therapy', 'Apicoectomy', 'Tooth Extraction'],
+  'Tooth Fracture / Cracked Tooth Syndrome': ['Crown Placement', 'Bonding', 'Tooth Extraction'],
+  'Erosion, Abrasion, Attrition': ['Dental Bonding', 'Crowns', 'Oral Hygiene Instruction'],
+  'Impacted Tooth': ['Impacted Tooth Removal', 'Surgical Extraction'],
+  'Tooth Mobility': ['Scaling and Root Planing', 'Splinting', 'Periodontal Surgery'],
+  'Gingivitis': ['Oral Prophylaxis', 'Topical Fluoride Application'],
+  'Periodontitis': ['Scaling and Root Planing', 'Flap Surgery', 'Bone Grafting'],
+  'Gingival Recession': ['Gingivoplasty', 'Gingival Grafting'],
+  'Peri-implantitis': ['Antibiotics', 'Implant Cleaning', 'Flap Surgery'],
+  'Malocclusion': ['Braces', 'Clear Aligners'],
+  'Crowded Teeth': ['Orthodontic Expansion', 'Braces'],
+  'Overbite / Underbite / Crossbite / Open Bite': ['Braces', 'Jaw Surgery'],
+  'Oral Ulcers / Aphthous Ulcers': ['Topical Medications'],
+  'Oral Candidiasis': ['Antifungal Medications'],
+  'TMD': ['Mouth Guard', 'TMD Therapy'],
+  'Bruxism': ['Mouth Guard', 'Botox (optional)'],
+  'Oral Cancer / Suspicious Lesions': ['Biopsy', 'Referral to Oncologist'],
+};
+
 function ManageAppointment() {
   const [records, setRecords] = useState([]);
   const [page, setPage] = useState(0);
@@ -56,102 +82,91 @@ function ManageAppointment() {
   const [selectedAppointment, setSelectedAppointment] = useState(null);
   const [diagnosis, setDiagnosis] = useState('');
   const [treatment, setTreatment] = useState('');
-  const [imageFile, setImageFile] = useState(null);
+  const [fineAmount, setFineAmount] = useState('');
+  const [imageFiles, setImageFiles] = useState([]);
 
   const userId = sessionStorage.getItem("userId");
   const role = sessionStorage.getItem("role");
 
-      const fetchAppointments = async (status, loadedDentistId = dentistId) => {
-        setLoading(true);
-        try {
-          let res;
-
-          if (role === 'staff') {
-            res = status === 'all'
-              ? await axios.get('http://localhost:1337/appointment/getall')
-              : await axios.get(`http://localhost:1337/appointment/status/${status}`);
-          } else if (role === 'dentist' && loadedDentistId) {
-            res = await axios.get(`http://localhost:1337/appointment/status/${status}/${loadedDentistId}`);
-          }
-
-          const appointmentsWithDentists = await Promise.all(res.data.map(async (appointment) => {
-            let dentistName = "Unknown";
-
-            if (appointment.dentistId && appointment.dentistId.length > 10) {
-              try {
-                // ✅ Use correct endpoint for dentistId
-                const dentistRes = await axios.get(`http://localhost:1337/staff/profile/dentist/${appointment.dentistId}`);
-                dentistName = dentistRes.data?.name || "Unknown";
-              } catch (err) {
-                console.warn(`Dentist not found for ID ${appointment.dentistId}`);
-              }
-            }
-
-            return { ...appointment, dentistName };
-          }));
-
-          setRecords(appointmentsWithDentists);
-        } catch (err) {
-          console.error("Error fetching appointments:", err);
-        }
-        setLoading(false);
-      };
-
-      
-useEffect(() => {
-  const init = async () => {
+  const fetchAppointments = async (status, loadedDentistId = dentistId) => {
     setLoading(true);
-    if (role === 'dentist') {
-      try {
-        const res = await axios.get(`http://localhost:1337/dentist/profile/user/${userId}`);
-        console.log("Dentist profile response:", res.data); // For debugging
-
-        if (res.data.dentistId) {
-          setDentistId(res.data.dentistId);
-          await fetchAppointments(statusFilter, res.data.dentistId);
-        } else {
-          console.error("Dentist ID not found in profile");
-        }
-      } catch (err) {
-        console.error("Failed to fetch dentist profile:", err);
+    try {
+      let res;
+      if (role === 'staff') {
+        res = status === 'all'
+          ? await axios.get('http://localhost:1337/appointment/getall')
+          : await axios.get(`http://localhost:1337/appointment/status/${status}`);
+      } else if (role === 'dentist' && loadedDentistId) {
+        res = await axios.get(`http://localhost:1337/appointment/status/${status}/${loadedDentistId}`);
       }
-    } else if (role === 'staff') {
-      await fetchAppointments(statusFilter);
+
+      const appointmentsWithDentists = await Promise.all(res.data.map(async (appointment) => {
+        let dentistName = "Unknown";
+        if (appointment.dentistId && appointment.dentistId.length > 10) {
+          try {
+            const dentistRes = await axios.get(`http://localhost:1337/dentist/profile/dentist/${appointment.dentistId}`);
+            dentistName = dentistRes.data?.name || "Unknown";
+          } catch {
+            console.warn(`Dentist not found for ID ${appointment.dentistId}`);
+          }
+        }
+        return { ...appointment, dentistName };
+      }));
+
+      setRecords(appointmentsWithDentists);
+    } catch (err) {
+      console.error("Error fetching appointments:", err);
     }
     setLoading(false);
   };
 
-  init();
-}, [statusFilter, role, userId]);
+  useEffect(() => {
+    const init = async () => {
+      setLoading(true);
+      if (role === 'dentist') {
+        try {
+          const res = await axios.get(`http://localhost:1337/dentist/profile/user/${userId}`);
+          if (res.data.dentistId) {
+            setDentistId(res.data.dentistId);
+            await fetchAppointments(statusFilter, res.data.dentistId);
+          }
+        } catch (err) {
+          console.error("Failed to fetch dentist profile:", err);
+        }
+      } else if (role === 'staff') {
+        await fetchAppointments(statusFilter);
+      }
+      setLoading(false);
+    };
+    init();
+  }, [statusFilter, role, userId]);
 
-  const handleCancelAppointment = async (appointmentId) => {
+  const handleCancelAppointment = async (id) => {
     try {
-      await axios.put(`http://localhost:1337/appointment/cancel/${appointmentId}`);
+      await axios.put(`http://localhost:1337/appointment/cancel/${id}`);
       alert("Appointment cancelled.");
       fetchAppointments(statusFilter);
-    } catch (err) {
+    } catch {
       alert("Error cancelling appointment.");
     }
   };
 
-  const handleApproveAppointment = async (appointmentId) => {
+  const handleApproveAppointment = async (id) => {
     try {
-      await axios.put(`http://localhost:1337/appointment/confirm/${appointmentId}`, {
-        status: 'confirmed',
-      });
+      await axios.put(`http://localhost:1337/appointment/confirm/${id}`, { status: 'confirmed' });
       alert("Appointment approved.");
       fetchAppointments(statusFilter);
-    } catch (err) {
+    } catch {
       alert("Error approving appointment.");
     }
   };
 
-  const handleDeleteAppointment = async (appointmentId) => {
+  const handleDeleteAppointment = async (id) => {
     try {
-      await axios.delete(`http://localhost:1337/appointment/delete/${appointmentId}`);
+      await axios.delete(`http://localhost:1337/appointment/delete/${id}`);
       alert("Appointment deleted.");
       fetchAppointments(statusFilter);
-    } catch (err) {
+    } catch {
       alert("Error deleting appointment.");
     }
   };
@@ -160,46 +175,38 @@ useEffect(() => {
     setSelectedAppointment(appointment);
     setDiagnosis('');
     setTreatment('');
-    setImageFile(null);
+    setFineAmount('');
+    setImageFiles([]);
     setOpenModal(true);
   };
 
-  const compressAndConvertToBase64 = async (file) => {
-    try {
-      const options = {
-        maxSizeMB: 0.01, // ~10KB
-        maxWidthOrHeight: 800,
-        useWebWorker: true,
-      };
-      const compressedFile = await imageCompression(file, options);
-      return await imageCompression.getDataUrlFromFile(compressedFile);
-    } catch (err) {
-      console.error('Image compression error:', err);
-      return null;
-    }
-  };
+  const compressImages = async (files) =>
+    await Promise.all(files.map(async (file) => {
+      const compressed = await imageCompression(file, { maxSizeMB: 0.3, maxWidthOrHeight: 1200 });
+      return await imageCompression.getDataUrlFromFile(compressed);
+    }));
 
   const handleSubmitRecord = async () => {
     try {
-      const imageData = imageFile ? await compressAndConvertToBase64(imageFile) : null;
-
+      const imageDataArray = await compressImages(imageFiles);
       const recordData = {
         appointmentId: selectedAppointment.appointmentId,
         patientId: selectedAppointment.patientId,
         dentistId: selectedAppointment.dentistId,
         diagnosis,
         treatment,
-        images: imageData ? [imageData] : [],
+        fine: fineAmount ? Number(fineAmount) : 0,
+        images: imageDataArray,
         visitDate: selectedAppointment.appointmentDate,
       };
 
       await axios.post('http://localhost:1337/record/create', recordData);
-
-      alert('Record created successfully');
+      await axios.put(`http://localhost:1337/appointment/complete/${selectedAppointment.appointmentId}`);
+      alert('Record created and appointment marked as completed.');
       setOpenModal(false);
       fetchAppointments(statusFilter);
     } catch (err) {
-      alert('Failed to create record');
+      alert('Failed to complete review and update appointment.');
       console.error(err);
     }
   };
@@ -215,10 +222,29 @@ useEffect(() => {
       <ClientSidebar />
       <div className="ManageAppointment-content">
         <h1>Manage Appointments</h1>
-        <div style={{ marginBottom: '1rem' }}>
-          <Button onClick={() => { setStatusFilter('confirmed'); }}>Confirmed</Button>
-          <Button onClick={() => { setStatusFilter('pending'); }}>Pending</Button>
-          <Button onClick={() => { setStatusFilter('cancelled'); }}>Cancelled</Button>
+
+        <div style={{ marginBottom: '1rem', display: 'flex', gap: '1rem' }}>
+          <Button
+            variant={statusFilter === 'confirmed' ? 'contained' : 'outlined'}
+            color="success"
+            onClick={() => setStatusFilter('confirmed')}
+          >
+            Confirmed
+          </Button>
+          <Button
+            variant={statusFilter === 'pending' ? 'contained' : 'outlined'}
+            color="warning"
+            onClick={() => setStatusFilter('pending')}
+          >
+            Pending
+          </Button>
+          <Button
+            variant={statusFilter === 'cancelled' ? 'contained' : 'outlined'}
+            color="error"
+            onClick={() => setStatusFilter('cancelled')}
+          >
+            Cancelled
+          </Button>
         </div>
 
         {loading ? (
@@ -273,30 +299,57 @@ useEffect(() => {
           </div>
         )}
 
-        {/* Modal for Review Record */}
         <Modal open={openModal} onClose={() => setOpenModal(false)}>
           <Box sx={modalStyle}>
             <h2>Review Appointment</h2>
             <TextField
+              select
               label="Diagnosis"
               fullWidth
               margin="normal"
               value={diagnosis}
-              onChange={(e) => setDiagnosis(e.target.value)}
-            />
+              onChange={(e) => {
+                setDiagnosis(e.target.value);
+                setTreatment('');
+              }}
+            >
+              {Object.keys(diagnosisTreatmentMap).map((option, index) => (
+                <MenuItem key={index} value={option}>{option}</MenuItem>
+              ))}
+            </TextField>
+
             <TextField
+              select
               label="Treatment"
               fullWidth
               margin="normal"
               value={treatment}
               onChange={(e) => setTreatment(e.target.value)}
+              disabled={!diagnosis}
+            >
+              {diagnosis && diagnosisTreatmentMap[diagnosis]?.map((option, index) => (
+                <MenuItem key={index} value={option}>{option}</MenuItem>
+              ))}
+            </TextField>
+
+            <TextField
+              label="Fine (₱)"
+              type="number"
+              fullWidth
+              margin="normal"
+              value={fineAmount}
+              onChange={(e) => setFineAmount(e.target.value)}
+              inputProps={{ min: 0 }}
             />
+
             <input
               type="file"
               accept="image/*"
-              onChange={(e) => setImageFile(e.target.files[0])}
+              multiple
+              onChange={(e) => setImageFiles(Array.from(e.target.files))}
               style={{ marginTop: '1rem' }}
             />
+
             <Button variant="contained" color="primary" onClick={handleSubmitRecord} sx={{ mt: 2 }}>
               Submit Record
             </Button>

@@ -6,24 +6,24 @@ import {
   HomeOutlined,
   FileTextOutlined,
   LogoutOutlined,
-  TeamOutlined,  // Icon for "Manage Staff"
+  TeamOutlined,
 } from '@ant-design/icons';
+import './ClientSidebar.css'; 
 
 const { Sider } = Layout;
 
 function ClientDashboard() {
   const [collapsed, setCollapsed] = useState(false);
   const navigate = useNavigate();
-  const role = sessionStorage.getItem('role'); 
+  const role = sessionStorage.getItem('role');
 
   const handleLogout = () => {
-    sessionStorage.removeItem('authToken'); 
+    sessionStorage.removeItem('authToken');
     sessionStorage.removeItem('userId');
     sessionStorage.removeItem('email');
     sessionStorage.removeItem('role');
-    navigate('/login'); 
+    navigate('/login');
   };
-
 
   const items = [
     {
@@ -43,14 +43,14 @@ function ClientDashboard() {
       key: '3',
       icon: <TeamOutlined />,
       label: 'Manage Dentist',
-      onClick: () => navigate('/ManageDentist'), 
+      onClick: () => navigate('/ManageDentist'),
       hidden: role !== 'dentist',
     },
     {
       key: '4',
       icon: <TeamOutlined />,
       label: 'Manage Staff',
-      onClick: () => navigate('/ManageStaff'), 
+      onClick: () => navigate('/ManageStaff'),
       hidden: role !== 'dentist',
     },
     {
@@ -77,10 +77,16 @@ function ClientDashboard() {
 
   return (
     <Layout style={{ minHeight: '100vh' }}>
-      <Sider collapsible collapsed={collapsed} onCollapse={setCollapsed}>
-        <Menu theme="dark">
+      <Sider
+        collapsible
+        collapsed={collapsed}
+        onCollapse={setCollapsed}
+        className="ClientSidebar"
+        width={200}
+      >
+        <Menu theme="dark" mode="inline">
           {items
-            .filter(item => !item.hidden) 
+            .filter(item => !item.hidden)
             .map(item => (
               <Menu.Item key={item.key} icon={item.icon} onClick={item.onClick}>
                 {item.label}

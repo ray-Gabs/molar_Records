@@ -189,3 +189,24 @@ exports.getAllAppointmentsByStatusAndDentistId = async (req, res) => {
     res.status(500).json({ message: "Error fetching appointments by status and dentist ID", error: err.message });
   }
 };
+
+exports.markAppointmentCompleted = async (req, res) => {
+  const { appointmentId } = req.params;
+
+  try {
+    const updatedAppointment = await Appointments.findOneAndUpdate(
+      { appointmentId },
+      { status: 'completed' },
+      { new: true }
+    );
+
+    if (!updatedAppointment) {
+      return res.status(404).json({ message: 'Appointment not found' });
+    }
+
+    res.status(200).json({ message: 'Appointment marked as completed', appointment: updatedAppointment });
+  } catch (err) {
+    console.error('Error updating appointment:', err);
+    res.status(500).json({ message: 'Failed to mark appointment as completed', error: err.message });
+  }
+};

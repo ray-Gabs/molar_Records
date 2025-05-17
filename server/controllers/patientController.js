@@ -1,15 +1,13 @@
 // controllers/patientController.js
-const PatientRecords = require('../models/patient.models');
+const Patient = require('../models/patient.models');
 const fs = require('fs');
-
-
 
 // Get patient profile by userId
 exports.getProfile = async (req, res) => {
   const { userId } = req.params;
 
   try {
-    const profile = await PatientRecords.findOne({ userId });
+    const profile = await Patient.findOne({ userId });
     if (!profile) {
       return res.status(404).json({ message: "Profile not found" });
     }
@@ -21,7 +19,7 @@ exports.getProfile = async (req, res) => {
     }
 
     res.status(200).json({
-      patientId: profile.patientId, 
+      patientId: profile.patientId,
       userId: profile.userId,
       name: profile.name,
       birthdate: profile.birthdate,
@@ -35,14 +33,12 @@ exports.getProfile = async (req, res) => {
   }
 };
 
-
-
+// Create new patient profile
 exports.createProfile = async (req, res) => {
   try {
     const { userId, name, birthdate, contactNumber, address, profileImage } = req.body;
 
     let profileImagePath = null;
-
     if (profileImage && profileImage.startsWith('data:image')) {
       const base64Data = profileImage.replace(/^data:image\/\w+;base64,/, '');
       const buffer = Buffer.from(base64Data, 'base64');
@@ -50,7 +46,7 @@ exports.createProfile = async (req, res) => {
       fs.writeFileSync(profileImagePath, buffer);
     }
 
-    const newProfile = new PatientRecords({ // ✅ Fixed here
+    const newProfile = new Patient({
       userId,
       name,
       birthdate,
@@ -75,22 +71,19 @@ exports.createProfile = async (req, res) => {
       contactNumber: newProfile.contactNumber,
       profileImage: base64Image ? `data:image/png;base64,${base64Image}` : null,
     });
-
   } catch (err) {
     console.error("Error creating profile:", err);
     res.status(500).json({ message: "Error creating profile", error: err.message });
   }
 };
 
-
-// Edit Dentist profile by userId
+// Edit profile
 exports.editProfile = async (req, res) => {
   const { userId } = req.params;
   const { name, birthdate, address, contactNumber, profileImage } = req.body;
 
   try {
-    const existingProfile = await PatientRecords.findOne({ userId }); // ✅ Fixed here
-
+    const existingProfile = await Patient.findOne({ userId });
     if (!existingProfile) {
       return res.status(404).json({ message: "Profile not found" });
     }
@@ -108,7 +101,7 @@ exports.editProfile = async (req, res) => {
       fs.writeFileSync(profileImagePath, buffer);
     }
 
-    const updatedProfile = await PatientRecords.findOneAndUpdate( // ✅ Fixed here
+    const updatedProfile = await Patient.findOneAndUpdate(
       { userId },
       {
         name,
@@ -140,14 +133,12 @@ exports.editProfile = async (req, res) => {
   }
 };
 
-
 // Delete profile
 exports.deleteProfile = async (req, res) => {
   const { userId } = req.params;
 
   try {
-    const deleted = await PatientRecords.findOneAndDelete({ userId });
-
+    const deleted = await Patient.findOneAndDelete({ userId });
     if (!deleted) {
       return res.status(404).json({ message: "Profile not found" });
     }
@@ -156,5 +147,21 @@ exports.deleteProfile = async (req, res) => {
   } catch (err) {
     console.error("Error deleting profile:", err);
     res.status(500).json({ message: "Error deleting profile", error: err.message });
+  }
+};
+
+// Get patient name by patientId
+exports.getNameByPatientId = async (req, res) => {
+  try {
+    const patient = await Patient.findOne({ patientId: req.params.patientId });
+
+    if (!patient) {
+      return res.status(404).json({ name: 'Unknown' });
+    }
+
+    res.json({ name: patient.name });
+  } catch (err) {
+    console.error('Error fetching patient name:', err);
+    res.status(500).json({ error: 'Internal Server Error' });
   }
 };

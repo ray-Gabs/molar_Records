@@ -1,27 +1,35 @@
-// routes/staffroute.js
 const express = require('express');
-const multer = require('multer');
-const processImage = require('../middleware/resizeImageMiddleware');
-const { createProfile, getProfile, deleteProfile, editProfile, getAllDentists,getDentistByDentistId} = require('../controllers/dentistController');
-const router = express.Router();
+const {
+  createProfile,
+  getProfile,
+  deleteProfile,
+  editProfile,
+  getAllDentists,
+  getDentistByDentistId,
+  getNameByDentistId
+} = require('../controllers/dentistController');
 
-// Multer setup for handling file uploads
-const upload = multer({ dest: 'uploads/' });
+const router = express.Router();
 
 // Get all dentists
 router.get('/profile', getAllDentists);
-// Use the image processing middleware before the controller action
-router.post('/create', upload.array('profileImages', 5), processImage, createProfile); 
+
+// Profile creation and editing use base64, not FormData
+router.post('/create', createProfile);
 
 // Get profile by userId
-router.get('/profile/user/:userId', getProfile); 
+router.get('/profile/user/:userId', getProfile);
 
 // Edit profile by userId
 router.put('/profile/:userId', editProfile);
 
 // Delete profile by userId
 router.delete('/profile/:userId', deleteProfile);
+
 // Get profile by dentistId
 router.get('/profile/dentist/:dentistId', getDentistByDentistId);
-
+// Get dentist name by dentistId
+router.get('/name/:dentistId', getNameByDentistId);
+// Get dentist name by dentistId
 module.exports = router;
+    

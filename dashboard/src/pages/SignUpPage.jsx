@@ -6,14 +6,14 @@ import {
   TextField,
   FormControl,
   InputLabel,
-  FilledInput,
+  OutlinedInput,
   InputAdornment,
   IconButton,
 } from "@mui/material";
 import { Visibility, VisibilityOff } from "@mui/icons-material";
 import "./LoginPage.css";
 
-const SignUpPage = ({ setIsAuthenticated, setUserRole }) => {  // Receive setUserRole and setIsAuthenticated as props
+const SignUpPage = ({ setIsAuthenticated, setUserRole }) => {
   const [userForm, setUserForm] = useState({
     username: "",
     email: "",
@@ -25,32 +25,25 @@ const SignUpPage = ({ setIsAuthenticated, setUserRole }) => {  // Receive setUse
 
   const handleSignUp = async () => {
     try {
-      // Ensure that the password is correctly added to the form
       const userFormWithRole = { ...userForm, role: "patient" };
-  
-      console.log("User Form With Role:", userFormWithRole);  // Debug: log user form
-  
-      // Sign up request
+
       const signUpResponse = await axios.post("http://localhost:1337/auth/signup", userFormWithRole);
-  
+
       if (signUpResponse.data.success) {
-        // Auto-login after successful signup
         const loginResponse = await axios.post("http://localhost:1337/auth/login", {
           email: userForm.email,
           password: userForm.password,
         });
-  
+
         if (loginResponse.data.authToken) {
-          // Store session data
           sessionStorage.setItem("authToken", loginResponse.data.authToken);
           sessionStorage.setItem("userId", loginResponse.data.userId);
           sessionStorage.setItem("email", loginResponse.data.email);
           sessionStorage.setItem("role", loginResponse.data.role);
-  
-          // Set authentication and user role
+
           setIsAuthenticated(true);
           setUserRole(loginResponse.data.role);
-  
+
           navigate("/ManageProfilePage");
         } else {
           setError("Login failed after signup.");
@@ -88,10 +81,10 @@ const SignUpPage = ({ setIsAuthenticated, setUserRole }) => {  // Receive setUse
           onChange={(e) => setUserForm({ ...userForm, email: e.target.value })}
         />
 
-        <FormControl fullWidth margin="dense" variant="filled">
-          <InputLabel htmlFor="filled-adornment-password">Password</InputLabel>
-          <FilledInput
-            id="filled-adornment-password"
+        <FormControl fullWidth margin="dense" variant="outlined">
+          <InputLabel htmlFor="signup-password">Password</InputLabel>
+          <OutlinedInput
+            id="signup-password"
             type={showPassword ? "text" : "password"}
             value={userForm.password}
             onChange={(e) => setUserForm({ ...userForm, password: e.target.value })}
@@ -102,6 +95,7 @@ const SignUpPage = ({ setIsAuthenticated, setUserRole }) => {  // Receive setUse
                 </IconButton>
               </InputAdornment>
             }
+            label="Password"
           />
         </FormControl>
 

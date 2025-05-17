@@ -4,7 +4,6 @@ import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 // User imports
 import UserDashboard from "./pages/UserFiling/UserDashboard";
 import ManageProfilePage from "./pages/ManageProfilePage";
-import UserRecords from "./pages/UserFiling/UserRecords";
 
 // Admin imports
 import AdminDashboard from "./pages/AdminPannel/AdminDashboard";

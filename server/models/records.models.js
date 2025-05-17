@@ -7,7 +7,13 @@ const recordsSchema = new mongoose.Schema({
   dentistId: { type: String, required: true },
   diagnosis: { type: String, required: true },
   treatment: { type: String, required: true },
-  images: [{ type: String }], 
+  images: [{
+  type: String,
+  validate: {
+    validator: (value) => /^data:image\/(png|jpeg|jpg);base64,/.test(value),
+    message: 'Image must be a valid base64 string with a proper data URI prefix.'
+  }
+  }],
   fine: { type: mongoose.Types.Decimal128, default: 0.0 },
   fineStatus: {
     type: String,

@@ -3,7 +3,7 @@ import React, { useEffect, useState } from "react";
 import ClientSidebar from "../UserFiling/ClientSidebar";
 import {
   Box, Button, Modal, Paper, Table, TableBody, TableCell,
-  TableContainer, TableHead, TablePagination, TableRow, TextField,
+  TableContainer, TableHead, TablePagination, TableRow, TextField,tableCellClasses 
 } from "@mui/material";
 import { styled } from "@mui/material/styles";
 import EditIcon from "@mui/icons-material/Edit";
@@ -12,13 +12,26 @@ import axios from "axios";
 import "./ManageDentist.css";
 
 const StyledTableCell = styled(TableCell)(({ theme }) => ({
-  '&.MuiTableCell-head': { backgroundColor: theme.palette.common.black, color: theme.palette.common.white },
-  '&.MuiTableCell-body': { fontSize: 14 },
+  [`&.${tableCellClasses.head}`]: {
+    backgroundColor: '#1c444d',
+    color: '#ffffff',
+    fontWeight: 'bold',
+    textAlign: 'center',
+  },
+  [`&.${tableCellClasses.body}`]: {
+    fontSize: 14,
+    textAlign: 'center',
+    color: '#1c444d',
+  },
 }));
 
 const StyledTableRow = styled(TableRow)(({ theme }) => ({
-  '&:nth-of-type(odd)': { backgroundColor: theme.palette.action.hover },
-  '&:last-child td, &:last-child th': { border: 0 },
+  '&:nth-of-type(odd)': {
+    backgroundColor: '#f2fafa',
+  },
+  '&:last-child td, &:last-child th': {
+    border: 0,
+  },
 }));
 
 const modalStyle = {

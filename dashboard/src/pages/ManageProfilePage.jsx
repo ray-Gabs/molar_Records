@@ -14,38 +14,36 @@ const ManageProfilePage = () => {
 
   useEffect(() => {
     const fetchData = async () => {
-      try {
-        const token = sessionStorage.getItem("authToken");
-        if (!token) {
-          console.error("No auth token found.");
-          return;
-        }
+      const token = sessionStorage.getItem("authToken");
+      if (!token) return;
 
+      try {
+        // Get user info
         const userRes = await axios.get(`http://localhost:1337/auth/user/${userId}`, {
           headers: { Authorization: `Bearer ${token}` },
         });
         setUserDetails(userRes.data);
 
-        try {
-          const profileRes = await axios.get(`http://localhost:1337/${role}/profile/${userId}`, {
-            headers: { Authorization: `Bearer ${token}` },
-          });
-          setProfile(profileRes.data);
-        } catch (profileErr) {
-          if (profileErr.response?.status === 404) {
-            setProfile(null);
-          } else {
-            console.error("Error fetching profile:", profileErr);
-          }
-        }
+        // Get profile based on role
+        const profileUrl =
+          role === "dentist"
+            ? `http://localhost:1337/${role}/profile/user/${userId}`
+            : `http://localhost:1337/${role}/profile/${userId}`;
+
+        const profileRes = await axios.get(profileUrl, {
+          headers: { Authorization: `Bearer ${token}` },
+        });
+        setProfile(profileRes.data);
       } catch (err) {
-        console.error("Error fetching user data:", err);
+        if (err.response?.status === 404) {
+          setProfile(null);
+        } else {
+          console.error("Error loading profile:", err);
+        }
       }
     };
 
-    if (userId && role) {
-      fetchData();
-    }
+    if (userId && role) fetchData();
   }, [userId, role]);
 
   const getImageSrc = (image) => {
@@ -61,7 +59,7 @@ const ManageProfilePage = () => {
           <h2>Manage Profile</h2>
           <label htmlFor="profile-pic" className="customFile">
             <Avatar
-              alt="Profile Picture"
+              alt="Profile"
               src={getImageSrc(profile?.profileImage)}
               sx={{ width: 100, height: 100 }}
             />
@@ -69,18 +67,13 @@ const ManageProfilePage = () => {
           <input
             type="file"
             id="profile-pic"
-            name="profile-pic"
-            accept="image/png, image/jpeg, image/jpg"
             style={{ display: "none" }}
             onChange={(e) => {
               const file = e.target.files[0];
               if (!file) return;
               const reader = new FileReader();
               reader.onloadend = () => {
-                setProfile((prev) => ({
-                  ...prev,
-                  profileImage: reader.result,
-                }));
+                setProfile((prev) => ({ ...prev, profileImage: reader.result }));
               };
               reader.readAsDataURL(file);
             }}
@@ -91,13 +84,12 @@ const ManageProfilePage = () => {
             type="date"
             fullWidth
             margin="dense"
-            value={profile?.birthdate ? profile?.birthdate.split("T")[0] : ""}
+            value={profile?.birthdate?.split("T")[0] || ""}
             disabled
             InputLabelProps={{ shrink: true }}
           />
           <TextField
             label="Contact Number"
-            type="number"
             fullWidth
             margin="dense"
             value={profile?.contactNumber || ""}
@@ -113,7 +105,7 @@ const ManageProfilePage = () => {
           <h2>Manage User Details</h2>
           <TextField label="Username" fullWidth margin="dense" value={userDetails.username || ""} disabled />
           <TextField label="Email" fullWidth margin="dense" value={userDetails.email || ""} disabled />
-          <TextField label="Password" fullWidth margin="dense" value="********" type="password" disabled />
+          <TextField label="Password" type="password" fullWidth margin="dense" value="********" disabled />
           <Button variant="contained" sx={{ mt: 2 }} onClick={() => setOpenUserModal(true)}>
             Edit User
           </Button>
@@ -174,28 +166,32 @@ const EditProfileForm = ({ profile, setProfile, userId, role, onClose }) => {
     if (!file) return;
     const reader = new FileReader();
     reader.onloadend = () => {
-      setFormData((prev) => ({
-        ...prev,
-        profilePicture: reader.result,
-      }));
+      setFormData((prev) => ({ ...prev, profilePicture: reader.result }));
     };
     reader.readAsDataURL(file);
   };
 
   const handleSave = async () => {
-    try {
-      if (!/^\d+$/.test(formData.contactNumber)) {
-        alert("Contact number must contain only digits.");
-        return;
-      }
+    const token = sessionStorage.getItem("authToken");
+    const endpointCheck =
+      role === "dentist"
+        ? `http://localhost:1337/${role}/profile/user/${userId}`
+        : `http://localhost:1337/${role}/profile/${userId}`;
 
-      const endpoint = profile
-        ? `http://localhost:1337/${role}/profile/${userId}`
-        : `http://localhost:1337/${role}/create`;
+    try {
+      // Check if profile exists
+      const exists = await axios.get(endpointCheck, {
+        headers: { Authorization: `Bearer ${token}` },
+      }).then(() => true).catch(() => false);
+
+      const method = exists ? "PUT" : "POST";
+      const url = method === "POST"
+        ? `http://localhost:1337/${role}/create`
+        : endpointCheck;
 
       const base64Data = formData.profilePicture?.startsWith("data:image")
         ? formData.profilePicture.replace(/^data:image\/\w+;base64,/, "")
-        : profile?.profileImage?.replace(/^data:image\/\w+;base64,/, "") || "";
+        : "";
 
       const payload = {
         userId,
@@ -206,19 +202,19 @@ const EditProfileForm = ({ profile, setProfile, userId, role, onClose }) => {
         profileImage: base64Data ? `data:image/png;base64,${base64Data}` : "",
       };
 
-      const response = await axios({
-        method: profile ? "PUT" : "POST",
-        url: endpoint,
+      const res = await axios({
+        method,
+        url,
         data: payload,
         headers: {
           "Content-Type": "application/json",
-          Authorization: `Bearer ${sessionStorage.getItem("authToken")}`,
+          Authorization: `Bearer ${token}`,
         },
       });
 
-      if (response.status === 200) {
+      if (res.status === 200) {
         alert("Profile saved successfully!");
-        setProfile(response.data);
+        setProfile(res.data);
         onClose();
       }
     } catch (err) {
@@ -229,51 +225,17 @@ const EditProfileForm = ({ profile, setProfile, userId, role, onClose }) => {
 
   return (
     <>
-      <input type="file" accept="image/jpeg, image/png, image/jpg" onChange={handleImageChange} />
+      <input type="file" accept="image/jpeg,image/png" onChange={handleImageChange} />
       {formData.profilePicture && (
         <Avatar
-          src={
-            formData.profilePicture.startsWith("data:image")
-              ? formData.profilePicture
-              : `data:image/png;base64,${formData.profilePicture}`
-          }
+          src={formData.profilePicture.startsWith("data:image") ? formData.profilePicture : `data:image/png;base64,${formData.profilePicture}`}
           sx={{ width: 100, height: 100, mt: 2 }}
         />
       )}
-      <TextField
-        label="Name"
-        fullWidth
-        margin="dense"
-        value={formData.name}
-        onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-      />
-      <TextField
-        label="Birthdate"
-        type="date"
-        fullWidth
-        margin="dense"
-        value={formData.birthdate}
-        onChange={(e) => setFormData({ ...formData, birthdate: e.target.value })}
-        InputLabelProps={{ shrink: true }}
-      />
-      <TextField
-        label="Address"
-        fullWidth
-        margin="dense"
-        value={formData.address}
-        onChange={(e) => setFormData({ ...formData, address: e.target.value })}
-      />
-      <TextField
-        label="Contact Number"
-        type="tel"
-        fullWidth
-        margin="dense"
-        value={formData.contactNumber}
-        onChange={(e) => {
-          const value = e.target.value.replace(/[^\d]/g, "");
-          setFormData({ ...formData, contactNumber: value });
-        }}
-      />
+      <TextField label="Name" fullWidth margin="dense" value={formData.name} onChange={(e) => setFormData({ ...formData, name: e.target.value })} />
+      <TextField label="Birthdate" type="date" fullWidth margin="dense" value={formData.birthdate} onChange={(e) => setFormData({ ...formData, birthdate: e.target.value })} InputLabelProps={{ shrink: true }} />
+      <TextField label="Address" fullWidth margin="dense" value={formData.address} onChange={(e) => setFormData({ ...formData, address: e.target.value })} />
+      <TextField label="Contact Number" fullWidth margin="dense" value={formData.contactNumber} onChange={(e) => setFormData({ ...formData, contactNumber: e.target.value.replace(/[^\d]/g, "") })} />
       <Button variant="contained" sx={{ mt: 2 }} onClick={handleSave}>
         {profile ? "Save Changes" : "Create Profile"}
       </Button>
@@ -289,65 +251,34 @@ const EditUserForm = ({ userDetails, setUserDetails, userId, onClose }) => {
   }, [userDetails]);
 
   const handleSave = async () => {
+    const token = sessionStorage.getItem("authToken");
+    const payload = { userId, ...formData };
+    if (!formData.password) delete payload.password;
+
     try {
-      const updatedData = {
-        ...formData,
-        password: formData.password ? formData.password : undefined,
-      };
-
-      const response = await axios.put(
-        `http://localhost:1337/auth/user/edit`,
-        {
-          userId,
-          ...updatedData,
+      const res = await axios.put("http://localhost:1337/auth/user/edit", payload, {
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`,
         },
-        {
-          headers: {
-            "Content-Type": "application/json",
-            Authorization: `Bearer ${sessionStorage.getItem("authToken")}`,
-          },
-        }
-      );
-
-      if (response.status === 200) {
-        alert("User details updated successfully!");
-        setUserDetails(response.data);
+      });
+      if (res.status === 200) {
+        alert("User updated!");
+        setUserDetails(res.data);
         onClose();
-      } else {
-        console.error("Failed to update user details");
       }
-    } catch (error) {
-      console.error("Error updating user:", error);
+    } catch (err) {
+      console.error("Error updating user:", err);
+      alert("Failed to update user.");
     }
   };
 
   return (
     <>
-      <TextField
-        label="Username"
-        fullWidth
-        margin="dense"
-        value={formData.username}
-        onChange={(e) => setFormData({ ...formData, username: e.target.value })}
-      />
-      <TextField
-        label="Email"
-        fullWidth
-        margin="dense"
-        value={formData.email}
-        onChange={(e) => setFormData({ ...formData, email: e.target.value })}
-      />
-      <TextField
-        label="Password"
-        fullWidth
-        margin="dense"
-        type="password"
-        value={formData.password}
-        onChange={(e) => setFormData({ ...formData, password: e.target.value })}
-      />
-      <Button variant="contained" sx={{ mt: 2 }} onClick={handleSave}>
-        Save Changes
-      </Button>
+      <TextField label="Username" fullWidth margin="dense" value={formData.username} onChange={(e) => setFormData({ ...formData, username: e.target.value })} />
+      <TextField label="Email" fullWidth margin="dense" value={formData.email} onChange={(e) => setFormData({ ...formData, email: e.target.value })} />
+      <TextField label="Password" type="password" fullWidth margin="dense" value={formData.password || ""} onChange={(e) => setFormData({ ...formData, password: e.target.value })} />
+      <Button variant="contained" sx={{ mt: 2 }} onClick={handleSave}>Save Changes</Button>
     </>
   );
 };

@@ -29,20 +29,23 @@ import axios from "axios";
 import dayjs from "dayjs";
 import "./UserDashboard.css";
 
-// Styled MUI Table
 const StyledTableCell = styled(TableCell)(({ theme }) => ({
   [`&.${tableCellClasses.head}`]: {
-    backgroundColor: theme.palette.common.black,
-    color: theme.palette.common.white,
+    backgroundColor: '#1c444d',
+    color: '#ffffff',
+    fontWeight: 'bold',
+    textAlign: 'center',
   },
   [`&.${tableCellClasses.body}`]: {
     fontSize: 14,
+    textAlign: 'center',
+    color: '#1c444d',
   },
 }));
 
 const StyledTableRow = styled(TableRow)(({ theme }) => ({
   '&:nth-of-type(odd)': {
-    backgroundColor: theme.palette.action.hover,
+    backgroundColor: '#f2fafa',
   },
   '&:last-child td, &:last-child th': {
     border: 0,
@@ -59,7 +62,7 @@ function UserDashboard() {
   const [selectedDentist, setSelectedDentist] = useState('');
   const [appointmentDate, setAppointmentDate] = useState(null);
   const [appointmentTime, setAppointmentTime] = useState(null);
-  const [statusFilter, setStatusFilter] = useState('all');
+  const [statusFilter, setStatusFilter] = useState('pending'); // ✅ Default to pending
 
   const userId = sessionStorage.getItem("userId");
   const role = sessionStorage.getItem("role");
@@ -76,7 +79,6 @@ function UserDashboard() {
     const fetchPatientProfile = async () => {
       try {
         const res = await axios.get(`http://localhost:1337/patient/profile/user/${userId}`);
-        console.log("Fetched patient profile:", res.data); 
         if (res.data.patientId) {
           setPatientId(res.data.patientId);
         } else {
@@ -102,7 +104,7 @@ function UserDashboard() {
 
   const fetchAppointments = async (status) => {
     try {
-      const res = await axios.get(`http://localhost:1337/appointment/${status}/${patientId}`);
+      const res = await axios.get(`http://localhost:1337/appointment/status/${status}/patient/${patientId}`);
       const appointmentsWithDentists = await Promise.all(res.data.map(async (appointment) => {
         const dentistRes = await axios.get(`http://localhost:1337/dentist/profile/dentist/${appointment.dentistId}`);
         const dentistName = dentistRes.data.name;
@@ -116,7 +118,7 @@ function UserDashboard() {
 
   useEffect(() => {
     if (patientId) {
-      fetchAppointments(statusFilter); 
+      fetchAppointments(statusFilter);
     }
   }, [patientId, statusFilter]);
 
@@ -148,16 +150,17 @@ function UserDashboard() {
 
     try {
       const payload = {
-        patientId: patientId,
+        patientId,
         dentistId: selectedDentist,
         appointmentDate: appointmentDate.toDate(),
         appointmentTime: appointmentTime.format("HH:mm"),
-        status: "pending", // ✅ Always set to pending
+        status: "pending",
       };
-      console.log("Submitting appointment with patientId:", patientId);
       await axios.post("http://localhost:1337/appointment/create", payload);
       alert("Appointment created successfully!");
       handleClose();
+      fetchAppointments('pending'); // Refresh list
+      setStatusFilter('pending');
     } catch (err) {
       console.error("Failed to create appointment:", err);
     }
@@ -165,7 +168,7 @@ function UserDashboard() {
 
   const handleCancelAppointment = async (appointmentId) => {
     try {
-      const res = await axios.put(`http://localhost:1337/appointment/cancel/${appointmentId}`);
+      await axios.put(`http://localhost:1337/appointment/cancel/${appointmentId}`);
       alert("Appointment cancelled successfully!");
       fetchAppointments(statusFilter);
     } catch (err) {
@@ -195,11 +198,18 @@ function UserDashboard() {
 
           <div className="Table">
             <h2>Latest Patient Appointments</h2>
-            <div>
-              <Button onClick={() => { setStatusFilter('completed'); fetchAppointments('completed'); }}>Completed</Button>
-              <Button onClick={() => { setStatusFilter('confirmed'); fetchAppointments('confirmed'); }}>Confirmed</Button>
-              <Button onClick={() => { setStatusFilter('pending'); fetchAppointments('pending'); }}>Pending</Button>
+            <div style={{ display: 'flex', gap: '10px', marginBottom: '10px' }}>
+              {['completed', 'confirmed', 'pending'].map((status) => (
+                <Button
+                  key={status}
+                  variant={statusFilter === status ? 'contained' : 'outlined'}
+                  onClick={() => setStatusFilter(status)}
+                >
+                  <h3 style={{ margin: 0 }}>{status.charAt(0).toUpperCase() + status.slice(1)}</h3>
+                </Button>
+              ))}
             </div>
+
             <TableContainer component={Paper}>
               <Table stickyHeader>
                 <TableHead>
@@ -208,12 +218,8 @@ function UserDashboard() {
                     <StyledTableCell>Appointment Time</StyledTableCell>
                     <StyledTableCell>Dentist Name</StyledTableCell>
                     <StyledTableCell>Status</StyledTableCell>
-                    {statusFilter === 'pending' && (
-                      <StyledTableCell style={{ backgroundColor: 'black', color: 'white' }}>Action</StyledTableCell>
-                    )}
-                    {statusFilter === 'completed' && (
-                      <StyledTableCell>Remarks</StyledTableCell>
-                    )}
+                    {statusFilter === 'pending' && <StyledTableCell>Action</StyledTableCell>}
+                    {statusFilter === 'completed' && <StyledTableCell>Remarks</StyledTableCell>}
                   </TableRow>
                 </TableHead>
                 <TableBody>
@@ -223,12 +229,12 @@ function UserDashboard() {
                       <StyledTableCell>{dayjs(appointment.appointmentTime, 'HH:mm').format('hh:mm A')}</StyledTableCell>
                       <StyledTableCell>{appointment.dentistName || "Unknown"}</StyledTableCell>
                       <StyledTableCell>{appointment.status}</StyledTableCell>
-                      {appointment.status === 'pending' && (
+                      {statusFilter === 'pending' && (
                         <StyledTableCell>
                           <Button onClick={() => handleCancelAppointment(appointment._id)} color="error">Cancel</Button>
                         </StyledTableCell>
                       )}
-                      {appointment.status === 'completed' && (
+                      {statusFilter === 'completed' && (
                         <StyledTableCell>{appointment.remarks || "No remarks available"}</StyledTableCell>
                       )}
                     </StyledTableRow>
