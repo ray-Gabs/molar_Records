@@ -62,7 +62,8 @@ function UserDashboard() {
   const [selectedDentist, setSelectedDentist] = useState('');
   const [appointmentDate, setAppointmentDate] = useState(null);
   const [appointmentTime, setAppointmentTime] = useState(null);
-  const [statusFilter, setStatusFilter] = useState('pending'); // ✅ Default to pending
+  const [statusFilter, setStatusFilter] = useState('pending');
+  const [confirmedDates, setConfirmedDates] = useState([]);
 
   const userId = sessionStorage.getItem("userId");
   const role = sessionStorage.getItem("role");
@@ -111,6 +112,13 @@ function UserDashboard() {
         return { ...appointment, dentistName };
       }));
       setRecords(appointmentsWithDentists);
+
+      if (status === 'confirmed') {
+        const dates = appointmentsWithDentists.map(app =>
+          dayjs(app.appointmentDate).startOf('day').format('YYYY-MM-DD')
+        );
+        setConfirmedDates(dates);
+      }
     } catch (err) {
       console.error("Error fetching appointments:", err);
     }
@@ -121,6 +129,32 @@ function UserDashboard() {
       fetchAppointments(statusFilter);
     }
   }, [patientId, statusFilter]);
+
+  const isConfirmedDate = (date) => {
+    return confirmedDates.includes(date.format('YYYY-MM-DD'));
+  };
+
+  const renderDay = (date, selectedDates, pickersDayProps) => {
+    const isConfirmed = isConfirmedDate(date);
+    return (
+      <div
+        {...pickersDayProps}
+        style={{
+          borderRadius: '50%',
+          backgroundColor: isConfirmed ? '#3AB286' : undefined,
+          color: isConfirmed ? 'white' : undefined,
+          width: 36,
+          height: 36,
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          margin: 'auto'
+        }}
+      >
+        {date.date()}
+      </div>
+    );
+  };
 
   const handleChangePage = (event, newPage) => {
     setPage(newPage);
@@ -159,7 +193,7 @@ function UserDashboard() {
       await axios.post("http://localhost:1337/appointment/create", payload);
       alert("Appointment created successfully!");
       handleClose();
-      fetchAppointments('pending'); // Refresh list
+      fetchAppointments('pending');
       setStatusFilter('pending');
     } catch (err) {
       console.error("Failed to create appointment:", err);
@@ -261,7 +295,11 @@ function UserDashboard() {
           <div className="AppointmentSection">
             <h2>Appointment Dates</h2>
             <LocalizationProvider dateAdapter={AdapterDayjs}>
-              <DateCalendar showDaysOutsideCurrentMonth fixedWeekNumber={6} />
+              <DateCalendar
+                showDaysOutsideCurrentMonth
+                fixedWeekNumber={6}
+                renderDay={renderDay}
+              />
             </LocalizationProvider>
           </div>
         </div>

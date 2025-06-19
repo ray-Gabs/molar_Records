@@ -83,6 +83,7 @@ function ManageAppointment() {
   const [diagnosis, setDiagnosis] = useState('');
   const [treatment, setTreatment] = useState('');
   const [fineAmount, setFineAmount] = useState('');
+  const [remark, setRemark] = useState('');
   const [imageFiles, setImageFiles] = useState([]);
 
   const userId = sessionStorage.getItem("userId");
@@ -97,23 +98,31 @@ function ManageAppointment() {
           ? await axios.get('http://localhost:1337/appointment/getall')
           : await axios.get(`http://localhost:1337/appointment/status/${status}`);
       } else if (role === 'dentist' && loadedDentistId) {
-        res = await axios.get(`http://localhost:1337/appointment/status/${status}/${loadedDentistId}`);
+        res = await axios.get(`http://localhost:1337/appointment/status/${status}/dentist/${loadedDentistId}`);
       }
 
-      const appointmentsWithDentists = await Promise.all(res.data.map(async (appointment) => {
+      const appointmentsWithProfiles = await Promise.all(res.data.map(async (appointment) => {
         let dentistName = "Unknown";
-        if (appointment.dentistId && appointment.dentistId.length > 10) {
-          try {
-            const dentistRes = await axios.get(`http://localhost:1337/dentist/profile/dentist/${appointment.dentistId}`);
-            dentistName = dentistRes.data?.name || "Unknown";
-          } catch {
-            console.warn(`Dentist not found for ID ${appointment.dentistId}`);
-          }
+        let patientName = "Unknown";
+
+        try {
+          const resPatient = await axios.get(`http://localhost:1337/patient/name/${appointment.patientId}`);
+          patientName = resPatient.data?.name ?? "Unknown";
+        } catch (e) {
+          console.warn("❗ Could not fetch patient", e);
         }
-        return { ...appointment, dentistName };
+
+        try {
+          const resDentist = await axios.get(`http://localhost:1337/dentist/name/${appointment.dentistId}`);
+          dentistName = resDentist.data?.name ?? "Unknown";
+        } catch (e) {
+          console.warn("❗ Could not fetch dentist", e);
+        }
+
+        return { ...appointment, dentistName, patientName };
       }));
 
-      setRecords(appointmentsWithDentists);
+      setRecords(appointmentsWithProfiles);
     } catch (err) {
       console.error("Error fetching appointments:", err);
     }
@@ -176,7 +185,11 @@ function ManageAppointment() {
     setDiagnosis('');
     setTreatment('');
     setFineAmount('');
+    setRemark('');
     setImageFiles([]);
+    if (role === 'staff') {
+      setDentistId(appointment.dentistId); // 👈 Important fix for staff
+    }
     setOpenModal(true);
   };
 
@@ -192,7 +205,7 @@ function ManageAppointment() {
       const recordData = {
         appointmentId: selectedAppointment.appointmentId,
         patientId: selectedAppointment.patientId,
-        dentistId: selectedAppointment.dentistId,
+        dentistId: selectedAppointment.dentistId || dentistId, // 👈 Ensures correct ID
         diagnosis,
         treatment,
         fine: fineAmount ? Number(fineAmount) : 0,
@@ -201,7 +214,9 @@ function ManageAppointment() {
       };
 
       await axios.post('http://localhost:1337/record/create', recordData);
-      await axios.put(`http://localhost:1337/appointment/complete/${selectedAppointment.appointmentId}`);
+      await axios.put(`http://localhost:1337/appointment/complete/${selectedAppointment.appointmentId}`, {
+        remark,
+      });
       alert('Record created and appointment marked as completed.');
       setOpenModal(false);
       fetchAppointments(statusFilter);
@@ -224,27 +239,9 @@ function ManageAppointment() {
         <h1>Manage Appointments</h1>
 
         <div style={{ marginBottom: '1rem', display: 'flex', gap: '1rem' }}>
-          <Button
-            variant={statusFilter === 'confirmed' ? 'contained' : 'outlined'}
-            color="success"
-            onClick={() => setStatusFilter('confirmed')}
-          >
-            Confirmed
-          </Button>
-          <Button
-            variant={statusFilter === 'pending' ? 'contained' : 'outlined'}
-            color="warning"
-            onClick={() => setStatusFilter('pending')}
-          >
-            Pending
-          </Button>
-          <Button
-            variant={statusFilter === 'cancelled' ? 'contained' : 'outlined'}
-            color="error"
-            onClick={() => setStatusFilter('cancelled')}
-          >
-            Cancelled
-          </Button>
+          <Button variant={statusFilter === 'confirmed' ? 'contained' : 'outlined'} color="success" onClick={() => setStatusFilter('confirmed')}>Confirmed</Button>
+          <Button variant={statusFilter === 'pending' ? 'contained' : 'outlined'} color="warning" onClick={() => setStatusFilter('pending')}>Pending</Button>
+          <Button variant={statusFilter === 'cancelled' ? 'contained' : 'outlined'} color="error" onClick={() => setStatusFilter('cancelled')}>Cancelled</Button>
         </div>
 
         {loading ? (
@@ -257,6 +254,7 @@ function ManageAppointment() {
                   <TableRow>
                     <StyledTableCell>Appointment Date</StyledTableCell>
                     <StyledTableCell>Appointment Time</StyledTableCell>
+                    <StyledTableCell>Patient Name</StyledTableCell>
                     <StyledTableCell>Dentist Name</StyledTableCell>
                     <StyledTableCell>Status</StyledTableCell>
                     <StyledTableCell>Action</StyledTableCell>
@@ -267,6 +265,7 @@ function ManageAppointment() {
                     <StyledTableRow key={appointment.appointmentId}>
                       <StyledTableCell>{new Date(appointment.appointmentDate).toLocaleDateString()}</StyledTableCell>
                       <StyledTableCell>{dayjs(appointment.appointmentTime, 'HH:mm').format('hh:mm A')}</StyledTableCell>
+                      <StyledTableCell>{appointment.patientName || "Unknown"}</StyledTableCell>
                       <StyledTableCell>{appointment.dentistName || "Unknown"}</StyledTableCell>
                       <StyledTableCell>{appointment.status}</StyledTableCell>
                       <StyledTableCell>
@@ -340,6 +339,17 @@ function ManageAppointment() {
               value={fineAmount}
               onChange={(e) => setFineAmount(e.target.value)}
               inputProps={{ min: 0 }}
+            />
+
+            <TextField
+              label="Remark"
+              multiline
+              rows={3}
+              fullWidth
+              margin="normal"
+              value={remark}
+              onChange={(e) => setRemark(e.target.value)}
+              placeholder="Add any notes or summary here..."
             />
 
             <input

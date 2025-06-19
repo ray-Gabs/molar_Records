@@ -35,19 +35,22 @@ router.delete('/delete/:appointmentId', deleteAppointment);
 
 // Get all appointments by patientId
 router.get('/patient/:patientId', getAllAppointmentsByPatientId);
-// Get all appointments by status
-router.get('/status/:status', getAllAppointmentsByStatus);
+
 //confirm appointment by appointmentId
 router.put('/confirm/:appointmentId', confirmAppointment);
 // Cancel appointment by appointmentId
 router.put('/cancel/:appointmentId', cancelAppointment);
 //get dentist by userId
 router.put('/complete/:appointmentId', markAppointmentCompleted);
-// More specific route FIRST
+
+// GET appointments by status AND patientId
 router.get('/status/:status/patient/:patientId', getAllAppointmentsByStatusAndPatientId);
 
-//get all appointments by status and dentistId
-router.get('/status/:status/:dentistId', getAllAppointmentsByStatusAndDentistId);
+// GET appointments by status AND dentistId
+router.get('/status/:status/dentist/:dentistId', getAllAppointmentsByStatusAndDentistId);
+
+// GET all appointments by status
+router.get('/status/:status', getAllAppointmentsByStatus);
 
 //get dentist by userId
 

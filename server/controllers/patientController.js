@@ -150,7 +150,6 @@ exports.deleteProfile = async (req, res) => {
   }
 };
 
-// Get patient name by patientId
 exports.getNameByPatientId = async (req, res) => {
   try {
     const patient = await Patient.findOne({ patientId: req.params.patientId });

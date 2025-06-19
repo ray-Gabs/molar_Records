@@ -25,11 +25,7 @@ const ManageProfilePage = () => {
         setUserDetails(userRes.data);
 
         // Get profile based on role
-        const profileUrl =
-          role === "dentist"
-            ? `http://localhost:1337/${role}/profile/user/${userId}`
-            : `http://localhost:1337/${role}/profile/${userId}`;
-
+        const profileUrl = `http://localhost:1337/${role}/profile/user/${userId}`;
         const profileRes = await axios.get(profileUrl, {
           headers: { Authorization: `Bearer ${token}` },
         });
@@ -175,8 +171,13 @@ const EditProfileForm = ({ profile, setProfile, userId, role, onClose }) => {
     const token = sessionStorage.getItem("authToken");
     const endpointCheck =
       role === "dentist"
-        ? `http://localhost:1337/${role}/profile/user/${userId}`
-        : `http://localhost:1337/${role}/profile/${userId}`;
+        ? `http://localhost:1337/dentist/profile/user/${userId}`
+        : role === "patient"
+        ? `http://localhost:1337/patient/profile/${userId}`
+        : role === "staff"
+        ? `http://localhost:1337/staff/profile/${userId}`
+        : null;
+
 
     try {
       // Check if profile exists

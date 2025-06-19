@@ -114,14 +114,12 @@ export default function ManageDentist() {
     }
 
     if (isEditing) {
-      // Send PUT request to update user profile
       await axios.put("http://localhost:1337/auth/user/edit", updateData);
     } else {
-      // Send POST request to create new user
       await axios.post("http://localhost:1337/auth/signup", updateData);
     }
 
-    // Reload users list and close modal
+
     fetchUsers();
     handleCloseModal();
   } catch (error) {
